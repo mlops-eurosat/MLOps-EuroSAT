@@ -1,5 +1,6 @@
-from mlops_eurosat.data import MyDataset
 from torch.utils.data import Dataset
+
+from mlops_eurosat.data import MyDataset
 
 
 def test_my_dataset():
