@@ -1,5 +1,5 @@
 # commands
-invoke==2.2.0
+invoke==3.0.3
 
 # pre-commit
 pre-commit==4.1.0
