@@ -10,8 +10,8 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: "ubuntu-latest"
-        python-version: "3.12"
+        operating-system: ["ubuntu-latest"]
+        python-version: ["3.12"]
 
     steps:
       - name: Checkout code
