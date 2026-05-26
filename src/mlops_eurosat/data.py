@@ -6,21 +6,21 @@ from PIL import Image
 from torch.utils.data import Dataset
 
 
-class MyDataset(Dataset):
+class MyDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
     """EuroSAT RGB dataset."""
 
     def __init__(self, data_path: Path) -> None:
-        self.data_path = data_path
+        self.data_path = Path(data_path)
 
-        self.images = None
-        self.targets = None
-        self.classes = None
+        self.images: torch.Tensor = torch.empty(0)
+        self.targets: torch.Tensor = torch.empty(0, dtype=torch.long)
+        self.classes: list[str] = []
 
     def __len__(self) -> int:
         """Return the length of the dataset."""
         return len(self.targets)
 
-    def __getitem__(self, index: int):
+    def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor]:
         """Return a given sample from the dataset."""
         return self.images[index], self.targets[index]
 
@@ -29,26 +29,30 @@ class MyDataset(Dataset):
         output_folder = Path(output_folder)
         output_folder.mkdir(parents=True, exist_ok=True)
 
-        classes = sorted([p.name for p in self.data_path.iterdir() if p.is_dir()])
-
+        classes = sorted(p.name for p in self.data_path.iterdir() if p.is_dir())
         class_to_idx = {class_name: idx for idx, class_name in enumerate(classes)}
 
-        images = []
-        targets = []
+        image_list: list[torch.Tensor] = []
+        target_list: list[int] = []
 
         for class_name in classes:
             class_folder = self.data_path / class_name
 
             for image_path in sorted(class_folder.glob("*.jpg")):
-                image = Image.open(image_path).convert("RGB")
-                image = torch.tensor(list(image.getdata()), dtype=torch.float32)
-                image = image.reshape(64, 64, 3).permute(2, 0, 1) / 255.0
+                with Image.open(image_path) as pil_image:
+                    rgb_image = pil_image.convert("RGB")
+                    image_tensor = torch.tensor(
+                        list(rgb_image.getdata()),
+                        dtype=torch.float32,
+                    )
 
-                images.append(image)
-                targets.append(class_to_idx[class_name])
+                image_tensor = image_tensor.reshape(64, 64, 3).permute(2, 0, 1) / 255.0
 
-        images = torch.stack(images)
-        targets = torch.tensor(targets, dtype=torch.long)
+                image_list.append(image_tensor)
+                target_list.append(class_to_idx[class_name])
+
+        images = torch.stack(image_list)
+        targets = torch.tensor(target_list, dtype=torch.long)
 
         generator = torch.Generator().manual_seed(42)
         indices = torch.randperm(len(images), generator=generator)
@@ -74,9 +78,9 @@ class MyDataset(Dataset):
 
 
 def preprocess(data_path: Path, output_folder: Path) -> None:
+    """Preprocess EuroSAT RGB data."""
     print("Preprocessing data...")
     dataset = MyDataset(data_path)
-    dataset.data_path = Path(data_path)
     dataset.preprocess(output_folder)
 
 
