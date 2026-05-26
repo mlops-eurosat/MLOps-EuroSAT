@@ -3,17 +3,46 @@ from torch import nn
 
 
 class Model(nn.Module):
-    """Just a dummy model to show how to structure your code"""
+    """CNN model for EuroSAT image classification."""
 
-    def __init__(self):
+    def __init__(self, num_classes: int = 10):
         super().__init__()
-        self.layer = nn.Linear(1, 1)
+
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+        )
+
+        self.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Dropout(0.5),
+            # Assumes 64x64 images
+            nn.Linear(128 * 8 * 8, 256),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(256, num_classes),
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.layer(x)
+        x = self.features(x)
+        x = self.classifier(x)
+        return x
 
 
 if __name__ == "__main__":
     model = Model()
-    x = torch.rand(1)
-    print(f"Output shape of model: {model(x).shape}")
+
+    print(model)
+
+    x = torch.randn(1, 3, 64, 64)
+
+    y = model(x)
+
+    print(f"Output shape: {y.shape}")
