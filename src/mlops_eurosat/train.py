@@ -5,7 +5,6 @@ from mlops_eurosat.model import Model
 
 
 def train():
-
     print("Loading processed dataset...")
 
     data = torch.load("data/processed/train.pt")
