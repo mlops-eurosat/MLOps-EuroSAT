@@ -2,6 +2,7 @@ import pytorch_lightning as pl
 import torch
 from torch import nn
 
+
 class Model(pl.LightningModule):  # was nn.Module
     """CNN model for EuroSAT image classification."""
 
@@ -36,7 +37,7 @@ class Model(pl.LightningModule):  # was nn.Module
         x = self.features(x)
         x = self.classifier(x)
         return x
-    
+
     def training_step(self, batch):
         imgs, targets = batch
         preds = self(imgs)
@@ -45,7 +46,7 @@ class Model(pl.LightningModule):  # was nn.Module
         self.log("train_loss", loss)
         self.log("train_acc", acc)
         return loss
-    
+
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=1e-3)
 

@@ -1,8 +1,10 @@
-import torch
-from torch.utils.data import DataLoader, Subset, TensorDataset
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+import torch
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from torch.utils.data import DataLoader, Subset, TensorDataset
+
 from mlops_eurosat.model import Model
+
 
 def train():
     # Load data
@@ -19,12 +21,12 @@ def train():
         dirpath="./models",
         monitor="train_loss",
         mode="min",
-        save_top_k=1,        # only keep best model
+        save_top_k=1,  # only keep best model
         verbose=True,
     )
     early_stopping_callback = EarlyStopping(
         monitor="train_loss",
-        patience=3,           # stops after 3 epochs without improvement
+        patience=3,  # stops after 3 epochs without improvement
         mode="min",
         verbose=True,
     )
@@ -39,6 +41,7 @@ def train():
 
     trainer.fit(model, dataloader)
     print(f"Bestes Modell gespeichert unter: {checkpoint_callback.best_model_path}")
+
 
 if __name__ == "__main__":
     train()
