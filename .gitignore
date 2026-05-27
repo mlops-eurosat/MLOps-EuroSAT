@@ -1,5 +1,8 @@
 docs/site/
 
+# model checkpoints
+models/
+
 # test cache
 manual_test/
 

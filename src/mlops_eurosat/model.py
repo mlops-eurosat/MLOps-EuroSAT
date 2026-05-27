@@ -1,8 +1,8 @@
+import pytorch_lightning as pl
 import torch
 from torch import nn
 
-
-class Model(nn.Module):
+class Model(pl.LightningModule):  # was nn.Module
     """CNN model for EuroSAT image classification."""
 
     def __init__(self, num_classes: int = 10):
@@ -30,10 +30,24 @@ class Model(nn.Module):
             nn.Linear(256, num_classes),
         )
 
+        self.loss_fn = nn.CrossEntropyLoss()
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.features(x)
         x = self.classifier(x)
         return x
+    
+    def training_step(self, batch):
+        imgs, targets = batch
+        preds = self(imgs)
+        loss = self.loss_fn(preds, targets)
+        acc = (targets == preds.argmax(dim=-1)).float().mean()
+        self.log("train_loss", loss)
+        self.log("train_acc", acc)
+        return loss
+    
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=1e-3)
 
 
 if __name__ == "__main__":
