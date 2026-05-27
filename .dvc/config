@@ -1,4 +1,5 @@
 [core]
     remote = storage
+    no_scm = true
 ['remote "storage"']
     url = gs://eurosat-data/dvc

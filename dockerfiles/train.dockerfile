@@ -4,16 +4,19 @@ RUN apt update && \
     apt install --no-install-recommends -y build-essential gcc && \
     apt clean && rm -rf /var/lib/apt/lists/*
 
+WORKDIR /app
+
 COPY requirements.txt requirements.txt
 COPY pyproject.toml pyproject.toml
 COPY src/ src/
-COPY data/ data/
+COPY .dvc/ .dvc/
+# COPY data/ data/
+COPY data/processed.dvc data/processed.dvc
 
-WORKDIR /
-RUN pip install -r requirements.txt --no-cache-dir --verbose
+# WORKDIR /
+RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt --no-cache-dir
+# RUN pip install -r requirements.txt --no-cache-dir --verbose
 RUN pip install . --no-deps --no-cache-dir --verbose
-RUN pip install dvc[gcs] google-cloud-storage
+RUN pip install dvc[gs] google-cloud-storage
 
-CMD ["bash", "-c", "dvc pull"]
-
-ENTRYPOINT ["python", "-u", "src/mlops_eurosat/train.py"]
+ENTRYPOINT ["bash", "-c", "dvc pull && python -u src/mlops_eurosat/train.py"]
