@@ -3,7 +3,7 @@ import torch
 from torch import nn
 
 
-class Model(pl.LightningModule):  
+class Model(pl.LightningModule):
     """CNN model for EuroSAT image classification."""
 
     def __init__(self, num_classes: int = 10, lr: float = 1e-3):
