@@ -1,75 +1,46 @@
+import pytorch_lightning as pl
 import torch
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from torch.utils.data import DataLoader, Subset, TensorDataset
 
 from mlops_eurosat.model import Model
 
 
 def train():
-    print("Loading processed dataset...")
-
+    # Load data
     data = torch.load("data/processed/train.pt")
+    dataset = TensorDataset(data["images"], data["targets"])
 
-    images = data["images"]
-    labels = data["targets"]
-    classes = data["classes"]
+    dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
 
-    print(f"Images shape: {images.shape}")
-    print(f"Labels shape: {labels.shape}")
-    print(f"Classes: {classes}")
+    # Model
+    model = Model()
 
-    dataset = TensorDataset(images, labels)
-
-    print(f"Full dataset size: {len(dataset)}")
-
-    # Small subset for testing
-    subset_size = 2000
-
-    random_indices = torch.randperm(len(dataset))[:subset_size]
-
-    subset = Subset(
-        dataset,
-        random_indices.tolist(),
+    # Callbacks
+    checkpoint_callback = ModelCheckpoint(
+        dirpath="./models",
+        monitor="train_loss",
+        mode="min",
+        save_top_k=1,  # only keep best model
+        verbose=True,
+    )
+    early_stopping_callback = EarlyStopping(
+        monitor="train_loss",
+        patience=3,  # stops after 3 epochs without improvement
+        mode="min",
+        verbose=True,
     )
 
-    dataloader = DataLoader(
-        subset,
-        batch_size=32,
-        shuffle=True,
+    # Trainer
+    trainer = pl.Trainer(
+        max_epochs=10,
+        callbacks=[checkpoint_callback, early_stopping_callback],
+        default_root_dir="./models",
+        limit_train_batches=0.2,
     )
 
-    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-
-    print(f"Using device: {device}")
-
-    model = Model().to(device)
-
-    criterion = torch.nn.CrossEntropyLoss()
-
-    optimizer = torch.optim.Adam(
-        model.parameters(),
-        lr=1e-3,
-    )
-
-    model.train()
-
-    for epoch in range(10):
-        print(f"\nEpoch {epoch + 1}")
-
-        for images, labels in dataloader:
-            images = images.to(device)
-            labels = labels.to(device)
-
-            outputs = model(images)
-
-            loss = criterion(outputs, labels)
-
-            optimizer.zero_grad()
-
-            loss.backward()
-
-            optimizer.step()
-
-            print(f"Loss: {loss.item():.4f}")
+    trainer.fit(model, dataloader)
+    print(f"Bestes Modell gespeichert unter: {checkpoint_callback.best_model_path}")
 
 
 if __name__ == "__main__":
