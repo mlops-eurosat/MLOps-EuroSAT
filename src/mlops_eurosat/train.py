@@ -1,99 +1,54 @@
-import os
+import logging
 
+import hydra
+import pytorch_lightning as pl
 import torch
-from torch.utils.data import DataLoader, Subset, TensorDataset
+from omegaconf import DictConfig
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from torch.utils.data import DataLoader, TensorDataset
 
 from mlops_eurosat.model import Model
 
-os.makedirs("models/checkpoints", exist_ok=True)
+log = logging.getLogger(__name__)
 
 
-def train():
-    print("Loading processed dataset...")
+@hydra.main(config_path="../../configs", config_name="config", version_base=None)
+def train(cfg: DictConfig):
+    pl.seed_everything(cfg.training.seed, workers=True)
 
-    data = torch.load("data/processed/train.pt")
-
-    images = data["images"]
-    labels = data["targets"]
-    classes = data["classes"]
-
-    print(f"Images shape: {images.shape}")
-    print(f"Labels shape: {labels.shape}")
-    print(f"Classes: {classes}")
-
-    dataset = TensorDataset(images, labels)
-
-    print(f"Full dataset size: {len(dataset)}")
-
-    # Small subset for testing
-    subset_size = 2000
-
-    random_indices = torch.randperm(len(dataset))[:subset_size]
-
-    subset = Subset(
-        dataset,
-        random_indices.tolist(),
-    )
-
+    data = torch.load(cfg.data_path)
+    dataset = TensorDataset(data["images"], data["targets"])
     dataloader = DataLoader(
-        subset,
-        batch_size=32,
+        dataset,
+        batch_size=cfg.training.batch_size,
         shuffle=True,
     )
 
-    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    model = Model(num_classes=cfg.model.num_classes, lr=cfg.training.lr)
 
-    print(f"Using device: {device}")
-
-    model = Model().to(device)
-
-    criterion = torch.nn.CrossEntropyLoss()
-
-    optimizer = torch.optim.Adam(
-        model.parameters(),
-        lr=1e-3,
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=cfg.training.checkpoint_dir,
+        monitor="train_loss",
+        mode="min",
+        save_top_k=1,
+        verbose=True,
+    )
+    early_stopping_callback = EarlyStopping(
+        monitor="train_loss",
+        patience=cfg.training.patience,
+        mode="min",
+        verbose=True,
     )
 
-    model.train()
+    trainer = pl.Trainer(
+        max_epochs=cfg.training.max_epochs,
+        callbacks=[checkpoint_callback, early_stopping_callback],
+        default_root_dir=cfg.training.checkpoint_dir,
+        limit_train_batches=cfg.training.limit_train_batches,
+    )
+    trainer.fit(model, dataloader)
 
-    best_loss = float("inf")
-    for epoch in range(10):
-        print(f"\nEpoch {epoch + 1}")
-        running_loss = 0.0
-
-        for images, labels in dataloader:
-            images = images.to(device)
-            labels = labels.to(device)
-
-            outputs = model(images)
-
-            loss = criterion(outputs, labels)
-
-            optimizer.zero_grad()
-
-            loss.backward()
-
-            optimizer.step()
-
-            # print(f"Loss: {loss.item():.4f}")
-
-            running_loss += loss.item()
-
-        epoch_loss = running_loss / len(dataloader)
-        print(f"Epoch loss: {epoch_loss:.4f}")
-
-        if epoch_loss < best_loss:
-            best_loss = epoch_loss
-
-            torch.save(
-                {
-                    "epoch": epoch,
-                    "model_state_dict": model.state_dict(),
-                    "optimizer_state_dict": optimizer.state_dict(),
-                },
-                "models/best_model.pt",
-            )
-            print(f"Saved new best model for epoch {epoch + 1}")
+    log.info(f"Best model saved: {checkpoint_callback.best_model_path}")
 
 
 if __name__ == "__main__":
