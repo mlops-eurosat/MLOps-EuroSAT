@@ -1,7 +1,11 @@
+import os
+
 import torch
 from torch.utils.data import DataLoader, Subset, TensorDataset
 
 from mlops_eurosat.model import Model
+
+os.makedirs("models/checkpoints", exist_ok=True)
 
 
 def train():
@@ -52,8 +56,10 @@ def train():
 
     model.train()
 
+    best_loss = float("inf")
     for epoch in range(10):
         print(f"\nEpoch {epoch + 1}")
+        running_loss = 0.0
 
         for images, labels in dataloader:
             images = images.to(device)
@@ -69,7 +75,25 @@ def train():
 
             optimizer.step()
 
-            print(f"Loss: {loss.item():.4f}")
+            # print(f"Loss: {loss.item():.4f}")
+
+            running_loss += loss.item()
+
+        epoch_loss = running_loss / len(dataloader)
+        print(f"Epoch loss: {epoch_loss:.4f}")
+
+        if epoch_loss < best_loss:
+            best_loss = epoch_loss
+
+            torch.save(
+                {
+                    "epoch": epoch,
+                    "model_state_dict": model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                },
+                "models/best_model.pt",
+            )
+            print(f"Saved new best model for epoch {epoch + 1}")
 
 
 if __name__ == "__main__":
