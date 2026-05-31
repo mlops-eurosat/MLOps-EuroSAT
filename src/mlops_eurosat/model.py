@@ -3,11 +3,13 @@ import torch
 from torch import nn
 
 
-class Model(pl.LightningModule):  # was nn.Module
+class Model(pl.LightningModule):
     """CNN model for EuroSAT image classification."""
 
-    def __init__(self, num_classes: int = 10):
+    def __init__(self, num_classes: int = 10, lr: float = 1e-3):
         super().__init__()
+        self.save_hyperparameters()
+        self.lr = lr
 
         self.features = nn.Sequential(
             nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1),
@@ -48,7 +50,7 @@ class Model(pl.LightningModule):  # was nn.Module
         return loss
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=1e-3)
+        return torch.optim.Adam(self.parameters(), lr=self.lr)
 
 
 if __name__ == "__main__":

@@ -6,6 +6,10 @@ models/
 # test cache
 manual_test/
 
+# Hydra outputs
+outputs/
+multirun/
+
 # other local dev info
 .vscode/
 
