@@ -37,9 +37,6 @@ def evaluate(model_checkpoint: str) -> None:
             all_preds.extend(preds.cpu().numpy())
             all_targets.extend(target.cpu().numpy())
 
-    accuracy = accuracy_score(all_targets, all_preds)
-    macro_f1 = f1_score(all_targets, all_preds, average="macro")
-
     print("\nClassification Report:")
     print(
         classification_report(
