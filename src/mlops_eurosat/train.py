@@ -1,46 +1,54 @@
+import logging
+
+import hydra
 import pytorch_lightning as pl
 import torch
+from omegaconf import DictConfig
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from torch.utils.data import DataLoader, Subset, TensorDataset
+from torch.utils.data import DataLoader, TensorDataset
 
 from mlops_eurosat.model import Model
 
+log = logging.getLogger(__name__)
 
-def train():
-    # Load data
-    data = torch.load("data/processed/train.pt")
+
+@hydra.main(config_path="../../configs", config_name="config", version_base=None)
+def train(cfg: DictConfig):
+    pl.seed_everything(cfg.training.seed, workers=True)
+
+    data = torch.load(cfg.data_path)
     dataset = TensorDataset(data["images"], data["targets"])
+    dataloader = DataLoader(
+        dataset,
+        batch_size=cfg.training.batch_size,
+        shuffle=True,
+    )
 
-    dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+    model = Model(num_classes=cfg.model.num_classes, lr=cfg.training.lr)
 
-    # Model
-    model = Model()
-
-    # Callbacks
     checkpoint_callback = ModelCheckpoint(
-        dirpath="./models",
+        dirpath=cfg.training.checkpoint_dir,
         monitor="train_loss",
         mode="min",
-        save_top_k=1,  # only keep best model
+        save_top_k=1,
         verbose=True,
     )
     early_stopping_callback = EarlyStopping(
         monitor="train_loss",
-        patience=3,  # stops after 3 epochs without improvement
+        patience=cfg.training.patience,
         mode="min",
         verbose=True,
     )
 
-    # Trainer
     trainer = pl.Trainer(
-        max_epochs=10,
+        max_epochs=cfg.training.max_epochs,
         callbacks=[checkpoint_callback, early_stopping_callback],
-        default_root_dir="./models",
-        limit_train_batches=0.2,
+        default_root_dir=cfg.training.checkpoint_dir,
+        limit_train_batches=cfg.training.limit_train_batches,
     )
-
     trainer.fit(model, dataloader)
-    print(f"Bestes Modell gespeichert unter: {checkpoint_callback.best_model_path}")
+
+    log.info(f"Best model saved: {checkpoint_callback.best_model_path}")
 
 
 if __name__ == "__main__":
