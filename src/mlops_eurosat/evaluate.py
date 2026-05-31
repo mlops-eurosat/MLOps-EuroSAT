@@ -14,7 +14,7 @@ def evaluate(model_checkpoint: str) -> None:
 
     model = Model()
     checkpoint = torch.load(model_checkpoint, map_location=torch.device("cpu"))
-    model.load_state_dict(checkpoint["model_state_dict"])
+    model.load_state_dict(checkpoint["state_dict"])
     model.to(DEVICE)
 
     data = torch.load("data/processed/test.pt")
