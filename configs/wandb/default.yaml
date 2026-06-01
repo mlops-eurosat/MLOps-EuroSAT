@@ -1,0 +1,4 @@
+project: mlops-eurosat
+entity: mlops-eurosat
+log_model: true
+name: null

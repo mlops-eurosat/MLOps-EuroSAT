@@ -1,11 +1,13 @@
 import logging
+from datetime import datetime
 from pathlib import Path
 
 import hydra
 import pytorch_lightning as pl
 import torch
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.loggers import WandbLogger
 from torch.utils.data import DataLoader, TensorDataset
 
 from mlops_eurosat.model import Model
@@ -38,6 +40,17 @@ def train(cfg: DictConfig) -> None:
 
     model = Model(num_classes=cfg.model.num_classes, lr=cfg.training.lr)
 
+    timestamp = datetime.now().strftime("%m%d-%H%M")
+    run_name = cfg.wandb.name or (f"lr{cfg.training.lr}_bs{cfg.training.batch_size}_{timestamp}")
+
+    wandb_logger = WandbLogger(
+        project=cfg.wandb.project,
+        entity=cfg.wandb.entity,
+        name=run_name,
+        log_model=cfg.wandb.log_model,
+        config=OmegaConf.to_container(cfg, resolve=True),
+    )
+
     checkpoint_callback = ModelCheckpoint(
         dirpath=cfg.training.checkpoint_dir,
         monitor="val_loss",
@@ -56,6 +69,7 @@ def train(cfg: DictConfig) -> None:
     trainer = pl.Trainer(
         max_epochs=cfg.training.max_epochs,
         callbacks=[checkpoint_callback, early_stopping_callback],
+        logger=wandb_logger,
         default_root_dir=cfg.training.checkpoint_dir,
         limit_train_batches=cfg.training.limit_train_batches,
         log_every_n_steps=cfg.training.log_every_n_steps,
