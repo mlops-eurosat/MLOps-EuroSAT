@@ -1,0 +1,20 @@
+schema: '2.0'
+stages:
+  preprocess:
+    cmd: python src/mlops_eurosat/data.py data/raw/EuroSAT_RGB data/processed
+    deps:
+    - path: data/raw/EuroSAT_RGB
+      hash: md5
+      md5: 01dcd0c525b10c5b33b2c40e501ed6b7.dir
+      size: 91870988
+      nfiles: 27001
+    - path: src/mlops_eurosat/data.py
+      hash: md5
+      md5: 0244cbece86819b99a10ba2e843ed6ee
+      size: 3895
+    outs:
+    - path: data/processed
+      hash: md5
+      md5: 506831ce0b4b0bae79b31e8aee184802.dir
+      size: 1327327421
+      nfiles: 3
