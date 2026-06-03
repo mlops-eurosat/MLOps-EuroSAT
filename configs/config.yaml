@@ -1,6 +1,7 @@
 defaults:
-  - _self_
   - model: default
   - training: default
+  - wandb: default
+  - _self_
 
-data_path: "data/processed/train.pt"
+data_dir: data/processed

@@ -1,7 +1,9 @@
 seed: 42
+batch_size: 64
 lr: 1e-3
-batch_size: 32
-max_epochs: 10
-limit_train_batches: 0.2
-patience: 3
-checkpoint_dir: "./models"
+max_epochs: 50
+patience: 7
+num_workers: 4
+limit_train_batches: 1.0
+log_every_n_steps: 10
+checkpoint_dir: models/checkpoints

@@ -1,0 +1,8 @@
+stages:
+  preprocess:
+    cmd: python src/mlops_eurosat/data.py data/raw/EuroSAT_RGB data/processed
+    deps:
+    - data/raw/EuroSAT_RGB
+    - src/mlops_eurosat/data.py
+    outs:
+    - data/processed
