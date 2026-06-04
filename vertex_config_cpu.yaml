@@ -4,3 +4,6 @@ workerPoolSpecs:
   replicaCount: 1
   containerSpec:
     imageUri: europe-west3-docker.pkg.dev/mlops-eurosat-496913/mlops-eurosat/train:latest
+    env:
+    - name: WANDB_API_KEY
+      value: REPLACE_WITH_YOUR_KEY
