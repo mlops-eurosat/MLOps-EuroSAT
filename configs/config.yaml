@@ -1,6 +1,7 @@
 defaults:
   - model: default
   - training: default
+  - wandb: default
   - _self_
 
 data_dir: data/processed
