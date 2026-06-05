@@ -9,8 +9,13 @@ WORKDIR /app
 COPY requirements.txt requirements.txt
 COPY pyproject.toml pyproject.toml
 COPY src/ src/
+COPY configs/ configs/
+
 COPY .dvc/ .dvc/
-COPY data/processed.dvc data/processed.dvc
+COPY dvc.yaml dvc.yaml
+COPY dvc.lock dvc.lock
+COPY data/raw.dvc data/raw.dvc
+
 
 RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt --no-cache-dir
 RUN pip install . --no-deps --no-cache-dir --verbose

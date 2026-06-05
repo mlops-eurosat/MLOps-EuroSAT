@@ -1,0 +1,14 @@
+.git/
+.dvc/cache/
+data/raw/
+data/processed/
+models/
+reports/
+docs/
+notebooks/
+*.egg-info/
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
