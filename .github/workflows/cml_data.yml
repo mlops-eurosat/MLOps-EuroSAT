@@ -31,6 +31,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -e .
+          pip install "dvc[gs]"
+          pip list
 
       - name: Pull data (DVC)
         run: |
