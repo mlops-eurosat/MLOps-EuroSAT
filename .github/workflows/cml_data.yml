@@ -1,0 +1,40 @@
+name: Data Statistics Check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.dvc'
+      - 'dvc.lock'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/*.dvc'
+      - 'dvc.lock'
+  workflow_dispatch:
+
+jobs:
+  run_data_checker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+
+      - name: Pull data (DVC)
+        run: |
+          dvc pull --no-run-cache
+
+      - name: Run dataset statistics
+        run: |
+          python -m mlops_eurosat.dataset_statistics
