@@ -1,4 +1,6 @@
 import os
+import tempfile
+from pathlib import Path
 
 from invoke import Context, task
 
@@ -43,6 +45,23 @@ def preprocess_data(ctx: Context) -> None:
 def train(ctx: Context) -> None:
     """Train model."""
     ctx.run(f"python src/{PROJECT_NAME}/train.py", echo=True, pty=not WINDOWS)
+
+
+@task
+def train_cloud(ctx: Context) -> None:
+    """Submit a Vertex AI custom training job (W&B key from .env)."""
+    key = ""
+    for line in Path(".env").read_text().splitlines():
+        if line.strip().startswith("WANDB_API_KEY="):
+            key = line.split("=", 1)[1].strip()
+    config = Path("vertex_config_cpu.yaml").read_text()
+    filled = Path(tempfile.gettempdir()) / "vertex_filled.yaml"
+    filled.write_text(config.replace("REPLACE_WITH_YOUR_KEY", key))
+    ctx.run(
+        f"gcloud ai custom-jobs create --region=europe-west3 --display-name=eurosat-test-run --config={filled}",
+        echo=True,
+        pty=not WINDOWS,
+    )
 
 
 @task
