@@ -14,4 +14,4 @@ mypy==2.1.0
 
 # docs
 mkdocs-material==9.7.1
-mkdocstrings-python==2.0.1
+mkdocstrings-python==2.0.4
