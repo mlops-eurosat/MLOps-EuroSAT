@@ -34,6 +34,15 @@ jobs:
           pip install "dvc[gs]"
           pip list
 
+      - name: Auth with GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configure DVC credentials
+        run: |
+          dvc remote modify --local storage credentialpath "$GOOGLE_APPLICATION_CREDENTIALS"
+
       - name: Pull data (DVC)
         run: |
           dvc pull --no-run-cache
