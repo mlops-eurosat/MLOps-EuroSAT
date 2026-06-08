@@ -1,10 +1,10 @@
 name: Unit Tests
-
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+
 jobs:
   test:
     runs-on: ${{ matrix.operating-system }}
@@ -12,7 +12,6 @@ jobs:
       matrix:
         operating-system: ["ubuntu-latest"]
         python-version: ["3.12"]
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -30,7 +29,6 @@ jobs:
           pip install -r requirements_dev.txt
           pip install -e .
           pip list
-
 
       - name: Run tests & coverage
         run: |

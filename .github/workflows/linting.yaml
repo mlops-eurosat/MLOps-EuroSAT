@@ -1,5 +1,4 @@
 name: Code linting
-
 on:
   push:
     branches: [main]
@@ -10,7 +9,6 @@ jobs:
   format:
     name: Check code formatting
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -18,7 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.12"
           cache: 'pip'
 
       - name: Install dependencies
@@ -29,13 +27,10 @@ jobs:
           pip list
 
       - name: ruff linter
-        run: |
-          ruff check .
+        run: ruff check .
 
       - name: ruff formatter
-        run: |
-          ruff format . --check
+        run: ruff format . --check
 
       - name: mypy type checking
-        run: |
-          mypy .
+        run: mypy .
