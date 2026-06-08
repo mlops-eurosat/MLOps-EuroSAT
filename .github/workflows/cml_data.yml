@@ -63,6 +63,12 @@ jobs:
           echo '![](./reports/figures/val_label_distribution.png "Val label distribution")' >> report.md
           echo '![](./reports/figures/test_label_distribution.png "Test label distribution")' >> report.md
 
+      - name: Install CML system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev libpixman-1-dev
+
       - name: Setup cml
         uses: iterative/setup-cml@v2
 
