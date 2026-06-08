@@ -11,3 +11,5 @@ steps:
       - '.'
 images:
   - 'europe-west3-docker.pkg.dev/mlops-eurosat-496913/mlops-eurosat/train:latest'
+options:
+  logging: CLOUD_LOGGING_ONLY
