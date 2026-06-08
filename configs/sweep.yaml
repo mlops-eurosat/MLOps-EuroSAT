@@ -1,0 +1,32 @@
+# W&B Sweep configuration
+
+program: src/mlops_eurosat/train.py
+name: eurosat-bayes-lr-bs
+project: mlops-eurosat
+entity: mlops-eurosat
+method: bayes
+
+metric:
+  name: val_acc
+  goal: maximize
+
+parameters:
+  training.lr:
+    distribution: log_uniform_values
+    min: 0.00001
+    max: 0.01
+  training.batch_size:
+    values: [32, 64, 128]
+  training.max_epochs:
+    value: 30
+
+# Stop unpromising runs early
+early_terminate:
+  type: hyperband
+  min_iter: 5
+
+command:
+  - ${env}
+  - python
+  - ${program}
+  - ${args_no_hyphens}

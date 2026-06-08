@@ -41,3 +41,7 @@ warn_unused_configs = true
 [[tool.mypy.overrides]]
 module = ["sklearn.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "wandb.*"
+ignore_errors = true
