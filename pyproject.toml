@@ -46,3 +46,6 @@ ignore_missing_imports = true
 module = ["wandb", "wandb.*"]
 ignore_missing_imports = true
 follow_imports = "skip"
+
+[tool.ruff.lint.isort]
+known-first-party = ["mlops_eurosat"]
