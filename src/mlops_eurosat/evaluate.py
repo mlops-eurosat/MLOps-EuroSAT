@@ -1,47 +1,79 @@
 import torch
 import typer
-from sklearn.metrics import accuracy_score, classification_report, f1_score
-from torch.utils.data import TensorDataset
+from sklearn.metrics import classification_report
+from torch.utils.data import DataLoader, TensorDataset
 
 from mlops_eurosat.model import Model
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def load_model(checkpoint_path: str) -> Model:
+    """Load a trained model from a checkpoint."""
+    model = Model()
+
+    checkpoint = torch.load(
+        checkpoint_path,
+        map_location=torch.device("cpu"),
+    )
+
+    model.load_state_dict(checkpoint["state_dict"])
+    model.to(DEVICE)
+    model.eval()
+
+    return model
+
+
+def predict(
+    model: Model,
+    dataloader: DataLoader,
+) -> tuple[list[int], list[int]]:
+    """Generate predictions for a dataloader."""
+    all_preds: list[int] = []
+    all_targets: list[int] = []
+
+    with torch.no_grad():
+        for images, targets in dataloader:
+            images = images.to(DEVICE)
+            targets = targets.to(DEVICE)
+
+            logits = model(images)
+            preds = logits.argmax(dim=1)
+
+            all_preds.extend(preds.cpu().tolist())
+            all_targets.extend(targets.cpu().tolist())
+
+    return all_targets, all_preds
 
 
 def evaluate(model_checkpoint: str) -> None:
     """Evaluate a trained model."""
     print(f"Evaluating {model_checkpoint}")
 
-    model = Model()
-    checkpoint = torch.load(model_checkpoint, map_location=torch.device("cpu"))
-    model.load_state_dict(checkpoint["state_dict"])
-    model.to(DEVICE)
+    model = load_model(model_checkpoint)
 
     data = torch.load("data/processed/test.pt")
 
-    test_set = TensorDataset(data["images"], data["targets"])
-    test_dataloader = torch.utils.data.DataLoader(test_set, batch_size=32)
+    test_set = TensorDataset(
+        data["images"],
+        data["targets"],
+    )
 
-    model.eval()
+    test_loader = DataLoader(
+        test_set,
+        batch_size=32,
+    )
 
-    all_preds = []
-    all_targets = []
-
-    with torch.no_grad():
-        for img, target in test_dataloader:
-            img, target = img.to(DEVICE), target.to(DEVICE)
-
-            logits = model(img)
-            preds = logits.argmax(dim=1)
-
-            all_preds.extend(preds.cpu().numpy())
-            all_targets.extend(target.cpu().numpy())
+    targets, preds = predict(
+        model,
+        test_loader,
+    )
 
     print("\nClassification Report:")
     print(
         classification_report(
-            all_targets,
-            all_preds,
+            targets,
+            preds,
             target_names=data["classes"],
         )
     )
