@@ -27,6 +27,7 @@ dev = {file = ['requirements_dev.txt']}
 
 [tool.ruff]
 line-length = 120
+src = ["src"]
 
 [tool.ruff.lint]
 select = ["I", "N", "E", "W", ]
@@ -39,6 +40,13 @@ python_version = "3.12"
 warn_unused_configs = true
 
 [[tool.mypy.overrides]]
-module = ["sklearn.*", "wandb.*", "google.cloud.*"]
+module = ["sklearn.*", "google.cloud.*"]
 ignore_missing_imports = true
-ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["wandb", "wandb.*"]
+ignore_missing_imports = true
+follow_imports = "skip"
+
+[tool.ruff.lint.isort]
+known-first-party = ["mlops_eurosat"]

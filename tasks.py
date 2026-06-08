@@ -68,9 +68,8 @@ def train_cloud(ctx: Context) -> None:
 @task
 def sweep_create(ctx: Context) -> None:
     """Create a W&B sweep from configs/sweep.yaml; prints the id."""
-    import yaml
-
     import wandb
+    import yaml
 
     config = yaml.safe_load(Path("configs/sweep.yaml").read_text())
     config["name"] = f"eurosat-{datetime.now():%Y%m%d-%H%M}"
@@ -118,9 +117,9 @@ def sweep_best(ctx: Context, sweep_id: str, promote: bool = False) -> None:
         invoke sweep-best --sweep-id mlops-eurosat/mlops-eurosat/abc123
         invoke sweep-best --sweep-id mlops-eurosat/mlops-eurosat/abc123 --promote
     """
+    import wandb
     import yaml
 
-    import wandb
     from mlops_eurosat import registry
 
     api = wandb.Api()
@@ -190,6 +189,7 @@ def promote_run(ctx: Context, run_id: str, entity: str = "mlops-eurosat", projec
     e.g. invoke promote-run --run-id abc123de
     """
     import wandb
+
     from mlops_eurosat import registry
 
     run = wandb.Api().run(f"{entity}/{project}/{run_id}")

@@ -5,12 +5,12 @@ from pathlib import Path
 import hydra
 import pytorch_lightning as pl
 import torch
+import wandb
 from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 from torch.utils.data import DataLoader, TensorDataset
 
-import wandb
 from mlops_eurosat.model import Model
 
 log = logging.getLogger(__name__)
