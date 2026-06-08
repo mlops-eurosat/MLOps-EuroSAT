@@ -2,24 +2,29 @@ name: Data Statistics Check
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - '**/*.dvc'
       - 'dvc.lock'
   pull_request:
-    branches: [main]
+    branches:
+      - main
     paths:
       - '**/*.dvc'
       - 'dvc.lock'
   workflow_dispatch:
 
-jobs:
-  run_data_checker:
-    runs-on: ubuntu-latest
+permissions:
+  contents: read
+  pull-requests: write
 
+jobs:
+  dataset_statistics:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -43,10 +48,26 @@ jobs:
         run: |
           dvc remote modify --local storage credentialpath "$GOOGLE_APPLICATION_CREDENTIALS"
 
-      - name: Pull data (DVC)
+      - name: Pull data
         run: |
           dvc pull --no-run-cache
 
-      - name: Run dataset statistics
+      - name: Check data statistics & generate report
         run: |
-          python -m mlops_eurosat.dataset_statistics
+          echo '## Data statistics' > report.md
+          echo '```' >> report.md
+          python -m mlops_eurosat.dataset_statistics >> report.md
+          echo '```' >> report.md
+          echo '![](./reports/figures/eurosat_images.png "EuroSAT images")' >> report.md
+          echo '![](./reports/figures/train_label_distribution.png "Train label distribution")' >> report.md
+          echo '![](./reports/figures/val_label_distribution.png "Val label distribution")' >> report.md
+          echo '![](./reports/figures/test_label_distribution.png "Test label distribution")' >> report.md
+
+      - name: Setup cml
+        uses: iterative/setup-cml@v2
+
+      - name: Comment on PR
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cml comment create report.md --watermark-title="Data Checker"
