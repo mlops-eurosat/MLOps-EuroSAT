@@ -39,9 +39,6 @@ python_version = "3.12"
 warn_unused_configs = true
 
 [[tool.mypy.overrides]]
-module = ["sklearn.*"]
+module = ["sklearn.*", "wandb.*", "google.cloud.*"]
 ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = ["google.cloud.*"]
-ignore_missing_imports = true
+ignore_errors = true

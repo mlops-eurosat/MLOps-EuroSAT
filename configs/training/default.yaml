@@ -3,7 +3,7 @@ batch_size: 64
 lr: 1e-3
 max_epochs: 50
 patience: 7
-num_workers: 4
+num_workers: 8
 limit_train_batches: 1.0
 log_every_n_steps: 10
 checkpoint_dir: models/checkpoints
