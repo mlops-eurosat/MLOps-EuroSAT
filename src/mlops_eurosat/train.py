@@ -1,21 +1,41 @@
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 
 import hydra
 import pytorch_lightning as pl
 import torch
-import wandb
+from google.cloud import storage  # type: ignore[attr-defined]
 from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 from torch.utils.data import DataLoader, TensorDataset
 
+from mlops_eurosat import vertex_registry
 from mlops_eurosat.model import Model
 
 log = logging.getLogger(__name__)
 
-MODEL_ARTIFACT_NAME = "eurosat-classifier"
+MODEL_BUCKET = "eurosat_models"
+SECRET_PROJECT = "mlops-eurosat-496913"
+WANDB_SECRET_NAME = "wandb-api-key"
+
+
+def _ensure_wandb_key() -> None:
+    """Ensure WANDB_API_KEY is set, fetching it from Secret Manager if needed"""
+
+    if os.getenv("WANDB_API_KEY"):
+        return
+    try:
+        from google.cloud import secretmanager
+
+        client = secretmanager.SecretManagerServiceClient()
+        name = f"projects/{SECRET_PROJECT}/secrets/{WANDB_SECRET_NAME}/versions/latest"
+        os.environ["WANDB_API_KEY"] = client.access_secret_version(name=name).payload.data.decode("utf-8")
+        log.info("Loaded WANDB_API_KEY from Secret Manager")
+    except Exception as e:
+        log.warning(f"Could not load WANDB_API_KEY from Secret Manager: {e}")
 
 
 def _make_loader(path: str, batch_size: int, shuffle: bool, num_workers: int) -> DataLoader:
@@ -30,55 +50,34 @@ def _make_loader(path: str, batch_size: int, shuffle: bool, num_workers: int) ->
     )
 
 
-def _log_model_artifact(
-    checkpoint_callback: ModelCheckpoint,
-    metrics: dict,
-    data_dir: Path,
-) -> None:
-    """Log the best (val_loss) checkpoint under a single shared collection name.
+def _upload_and_register(best_path: str, val_acc: float | None, run_id: str) -> None:
+    """Upload the best checkpoint to GCS and register it in the Vertex Model Registry.
 
-    Carries val_acc/test_acc/val_loss plus the normalisation stats (mean/std)
-    and class order in the metadata, so that:
-      * the registry promotion can compare runs (champion/challenger), and
-      * the inference API is self-contained (no dependency on the .pt files).
+    W&B is used only for experiment tracking; The checkpoint is written to
+    ``gs://{MODEL_BUCKET}/checkpoints/{run_id}/model.ckpt`` and registered as a new
+    version aliased ``staging``; the serving API loads it from that same GCS dir
+    via ``AIP_STORAGE_URI``.
     """
-    best_path = checkpoint_callback.best_model_path
     if not best_path:
-        log.warning("No best_model_path available; skipping model artifact log.")
+        log.warning("No best_model_path available; skipping model registration.")
+        return
+    if val_acc is None:
+        log.warning("No numeric val_acc available; skipping model registration.")
         return
 
-    def _num(key: str):
-        v = metrics.get(key)
-        if v is None:
-            return None
-        try:
-            return float(v)
-        except (TypeError, ValueError):
-            return None
+    artifact_dir = f"checkpoints/{run_id}"
+    blob_path = f"{artifact_dir}/model.ckpt"
+    storage.Client().bucket(MODEL_BUCKET).blob(blob_path).upload_from_filename(best_path)
 
-    metadata: dict = {}
-    for key in ("val_acc", "test_acc", "val_loss"):
-        val = _num(key)
-        if val is not None:
-            metadata[key] = val
+    artifact_uri = f"gs://{MODEL_BUCKET}/{artifact_dir}"
+    log.info(f"Uploaded checkpoint to {artifact_uri}/model.ckpt")
 
-    norm = torch.load(data_dir / "train.pt", weights_only=False)
-    metadata["mean"] = norm["mean"].tolist()
-    metadata["std"] = norm["std"].tolist()
-    metadata["classes"] = norm["classes"]
-
-    artifact = wandb.Artifact(
-        name=MODEL_ARTIFACT_NAME,
-        type="model",
-        metadata=metadata,
-    )
-    artifact.add_file(best_path)
-    wandb.log_artifact(artifact)
-    log.info(f"Logged model artifact '{MODEL_ARTIFACT_NAME}' with metadata keys={list(metadata)}")
+    vertex_registry.register_candidate(artifact_uri=artifact_uri, val_acc=val_acc)
 
 
 @hydra.main(config_path="../../configs", config_name="config", version_base=None)
 def train(cfg: DictConfig) -> None:
+    _ensure_wandb_key()
     pl.seed_everything(cfg.training.seed, workers=True)
 
     data_dir = Path(cfg.data_dir)
@@ -141,11 +140,9 @@ def train(cfg: DictConfig) -> None:
 
     trainer.test(model, test_loader, ckpt_path="best")
 
-    metrics: dict[str, object] = dict(trainer.callback_metrics)
-    if best_val_acc is not None:
-        metrics["val_acc"] = best_val_acc
-
-    _log_model_artifact(checkpoint_callback, metrics, data_dir)
+    if cfg.training.register_model:
+        run_id = wandb_logger.version or run_name
+        _upload_and_register(checkpoint_callback.best_model_path, best_val_acc, run_id)
 
 
 if __name__ == "__main__":
