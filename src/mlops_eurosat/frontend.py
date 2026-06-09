@@ -1,3 +1,5 @@
+import base64
+
 import pandas as pd
 import requests
 import streamlit as st
@@ -41,15 +43,16 @@ if uploaded_file:
 
     with st.spinner("Running inference..."):
         uploaded_file.seek(0)
+        image_b64 = base64.b64encode(uploaded_file.read()).decode("utf-8")
 
         response = requests.post(
-            "http://localhost:8000/predict/",
-            files={"data": uploaded_file},
+            "http://localhost:8000/predict",
+            json={"instances": [{"image_b64": image_b64}]},
             timeout=30,
         )
 
     if response.status_code == 200:
-        result = response.json()
+        result = response.json()["predictions"][0]
 
         with col2:
             st.subheader("Prediction")
@@ -79,7 +82,7 @@ if uploaded_file:
 
         st.dataframe(
             df.style.format({"Probability": "{:.2%}"}),
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
 
