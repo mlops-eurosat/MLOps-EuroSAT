@@ -17,3 +17,5 @@ mkdocs-material==9.7.1
 mkdocstrings-python==2.0.4
 
 types-PyYAML>=6.0
+pandas-stubs>=3.0.3
+types-requests>=2.33
