@@ -8,7 +8,7 @@ reports/
 docs/
 notebooks/
 outputs/
-wandb/
+/wandb/
 lightning_logs/
 *.egg-info/
 __pycache__/
