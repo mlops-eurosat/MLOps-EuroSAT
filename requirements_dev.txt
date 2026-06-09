@@ -21,3 +21,5 @@ kfp>=2.9.0
 google-cloud-pipeline-components>=2.14.0
 
 types-PyYAML>=6.0
+pandas-stubs>=3.0.3
+types-requests>=2.33

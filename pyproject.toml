@@ -44,7 +44,7 @@ module = ["sklearn.*", "google.cloud.*", "kfp.*", "google_cloud_pipeline_compone
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = ["wandb", "wandb.*"]
+module = ["wandb", "wandb.*", "google.cloud.*", "requests"]
 ignore_missing_imports = true
 follow_imports = "skip"
 
