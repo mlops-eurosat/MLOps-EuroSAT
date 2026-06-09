@@ -40,7 +40,7 @@ python_version = "3.12"
 warn_unused_configs = true
 
 [[tool.mypy.overrides]]
-module = ["sklearn.*", "google.cloud.*"]
+module = ["sklearn.*", "google.cloud.*", "kfp.*", "google_cloud_pipeline_components.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

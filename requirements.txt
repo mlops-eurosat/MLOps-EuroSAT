@@ -11,6 +11,9 @@ wandb>=0.27.2
 pyyaml>=6.0
 matplotlib>=3.7
 python-multipart==0.0.29
+google-cloud-aiplatform>=1.71.0
+google-cloud-storage>=2.18.0
+google-cloud-secret-manager>=2.20.0
 requests==2.34.2
 pandas==3.0.3
 streamlit==1.57.0
