@@ -44,7 +44,7 @@ module = ["sklearn.*", "google.cloud.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = ["wandb", "wandb.*", "google.cloud.*", "requests.*", "requests"]
+module = ["wandb", "wandb.*", "google.cloud.*", "requests", "requests.*"]
 ignore_missing_imports = true
 follow_imports = "skip"
 
