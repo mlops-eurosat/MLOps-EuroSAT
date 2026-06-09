@@ -7,7 +7,5 @@ workerPoolSpecs:
     command:
     - bash
     - -c
-    - "dvc pull && wandb agent --count COUNT_PLACEHOLDER SWEEP_ID_PLACEHOLDER"
-    env:
-    - name: WANDB_API_KEY
-      value: REPLACE_WITH_YOUR_KEY
+    # Agent needs WANDB_API_KEY before it starts; fetch it from Secret Manager
+    - "dvc pull && export WANDB_API_KEY=$(python -c \"from google.cloud import secretmanager as s; print(s.SecretManagerServiceClient().access_secret_version(name='projects/mlops-eurosat-496913/secrets/wandb-api-key/versions/latest').payload.data.decode())\") && wandb agent --count COUNT_PLACEHOLDER SWEEP_ID_PLACEHOLDER"
