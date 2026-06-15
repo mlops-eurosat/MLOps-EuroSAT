@@ -8,6 +8,8 @@ COPY src src/
 COPY requirements.txt requirements.txt
 COPY pyproject.toml pyproject.toml
 
+# Install the CPU-only build of torch first (serving runs on CPU)
+RUN pip install torch==2.12.0 --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
 RUN pip install -r requirements.txt --no-cache-dir --verbose
 RUN pip install . --no-deps --no-cache-dir --verbose
 
