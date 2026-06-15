@@ -1,12 +1,14 @@
-"""Vertex AI Model Registry helpers for EuroSAT (GCP-native registry).
+"""Model registry helpers for EuroSAT.
 
-In the architecture the *source of truth* for "which model is live" lives in
-the Vertex AI Model Registry, while W&B is used only for experiment tracking.
+The Vertex AI Model Registry is the source of truth for which model version is
+live. W&B is used only for experiment tracking.
 
-Workflow :
+Workflow:
   * a freshly trained model is uploaded as a new *version* with alias ``staging``
   * a champion/challenger check promotes it to ``production`` only if its
     ``val_acc`` beats the current production model.
+  * the production version is then deployed to the ``eurosat-api`` Cloud Run
+    service by updating its ``AIP_STORAGE_URI`` environment variable.
 
 The model weights themselves live in GCS (``artifact_uri``); the registry stores
 metadata + aliases and points at that artifact.
@@ -26,13 +28,13 @@ PRODUCTION_ALIAS = "production"
 
 METRIC_LABEL = "val_acc_bp"
 
-# Custom serving container used when registering the model.
+CLOUD_RUN_SERVICE = "eurosat-api"
+
+# Serving container metadata stored in the registry (used at registration time).
 SERVING_IMAGE = f"{REGION}-docker.pkg.dev/{PROJECT_ID}/mlops-eurosat/api:latest"
 SERVING_PORT = 8080
 HEALTH_ROUTE = "/health"
 PREDICT_ROUTE = "/predict"
-
-ENDPOINT_DISPLAY_NAME = "eurosat-endpoint"
 
 
 def _init() -> None:
@@ -61,7 +63,6 @@ def _get_model() -> aiplatform.Model | None:
 
 def _versioned_model(alias: str) -> aiplatform.Model:
     """Return the model version carrying `alias`."""
-
     base = _get_model()
     if base is None:
         raise RuntimeError(f"No '{MODEL_DISPLAY_NAME}' model found in the registry.")
@@ -89,7 +90,7 @@ def register_candidate(artifact_uri: str, val_acc: float) -> aiplatform.Model:
         version_aliases=[STAGING_ALIAS],
         labels={METRIC_LABEL: _encode_metric(val_acc)},
     )
-    print(f"[vertex] uploaded version {model.version_id} aliased '{STAGING_ALIAS}' (val_acc={val_acc:.4f})")
+    print(f"[registry] uploaded version {model.version_id} aliased '{STAGING_ALIAS}' (val_acc={val_acc:.4f})")
     return model
 
 
@@ -103,12 +104,7 @@ def get_current_production() -> tuple[str | None, float | None]:
 
 
 def promote_if_better(staging_version: str | None = None) -> bool:
-    """Promote the staging model to ``production`` iff it beats the current one.
-
-    Args:
-        staging_version: version id to promote; defaults to whatever currently
-            carries the ``staging`` alias.
-    """
+    """Promote the staging model to ``production`` iff it beats the current one."""
     model = _get_model()
     if model is None:
         raise RuntimeError(f"No '{MODEL_DISPLAY_NAME}' model found in the registry.")
@@ -121,7 +117,7 @@ def promote_if_better(staging_version: str | None = None) -> bool:
 
     _, current_metric = get_current_production()
     if current_metric is not None and candidate_metric <= current_metric:
-        print(f"[vertex] candidate {candidate_metric:.4f} <= production {current_metric:.4f} -- keeping production.")
+        print(f"[registry] candidate {candidate_metric:.4f} <= production {current_metric:.4f} -- keeping production.")
         return False
 
     model.versioning_registry.add_version_aliases(
@@ -130,53 +126,42 @@ def promote_if_better(staging_version: str | None = None) -> bool:
     )
     prev = f"{current_metric:.4f}" if current_metric is not None else "none"
     print(
-        f"[vertex] promoted version {candidate.version_id} ({candidate_metric:.4f}) to '{PRODUCTION_ALIAS}' "
+        f"[registry] promoted version {candidate.version_id} ({candidate_metric:.4f}) to '{PRODUCTION_ALIAS}' "
         f"(previous: {prev})."
     )
     return True
 
 
-def deploy_to_endpoint(
-    version_alias: str = PRODUCTION_ALIAS,
-    machine_type: str = "n1-standard-32",
-    min_replicas: int = 1,
-    max_replicas: int = 1,
-) -> aiplatform.Endpoint:
-    """Deploy the given model version to the shared Vertex Endpoint.
+def deploy_to_cloud_run(version_alias: str = PRODUCTION_ALIAS) -> str:
+    """Point the eurosat-api Cloud Run service at the promoted model version.
 
-    Re-uses the endpoint if it exists. Any previously deployed models are removed
-    first so replicas don't accumulate.
+    Updates AIP_STORAGE_URI to the model's GCS artifact directory, which
+    triggers a new Cloud Run revision that loads the new weights on startup.
+    Returns the service URL.
     """
+    from google.cloud import run_v2
+
     model = _versioned_model(version_alias)
+    if not model.uri:
+        raise RuntimeError(f"Model version '{version_alias}' has no artifact_uri.")
 
-    endpoints = aiplatform.Endpoint.list(filter=f'display_name="{ENDPOINT_DISPLAY_NAME}"')
-    endpoint = endpoints[0] if endpoints else aiplatform.Endpoint.create(display_name=ENDPOINT_DISPLAY_NAME)
+    client = run_v2.ServicesClient()
+    service_name = f"projects/{PROJECT_ID}/locations/{REGION}/services/{CLOUD_RUN_SERVICE}"
 
-    if endpoint.list_models():
-        endpoint.undeploy_all(sync=True)
+    service = client.get_service(name=service_name)
+    container = service.template.containers[0]
 
-    model.deploy(
-        endpoint=endpoint,
-        machine_type=machine_type,
-        min_replica_count=min_replicas,
-        max_replica_count=max_replicas,
-        traffic_percentage=100,
-        sync=False,
-    )
-    print(
-        f"[vertex] started async deploy of version {model.version_id} to endpoint "
-        f"'{ENDPOINT_DISPLAY_NAME}' ({endpoint.resource_name})"
-    )
-    return endpoint
+    # Replace AIP_STORAGE_URI, keep all other env vars intact
+    container.env_vars = [e for e in container.env_vars if e.name != "AIP_STORAGE_URI"]
+    container.env_vars.append(run_v2.EnvVar(name="AIP_STORAGE_URI", value=model.uri))
+
+    result = client.update_service(service=service).result()
+    print(f"[registry] {CLOUD_RUN_SERVICE} now serves model {model.version_id} ({model.uri}) -> {result.uri}")
+    return result.uri
 
 
 def performance_gate(max_latency_s: float = 5.0, num_predictions: int = 100, alias: str = STAGING_ALIAS) -> bool:
-    """Time `num_predictions` forward passes of the aliased model; True if under the limit.
-
-    Loads the checkpoint from the model version's GCS ``artifact_uri`` and runs it
-    on CPU.
-    """
-
+    """Time `num_predictions` forward passes of the staging model; True if under the limit."""
     import tempfile
     import time
 
@@ -206,7 +191,7 @@ def performance_gate(max_latency_s: float = 5.0, num_predictions: int = 100, ali
 
 
 def gate_promote_deploy(max_latency_s: float = 5.0) -> str:
-    """Run the full registry-change reaction: gate -> promote -> deploy.
+    """Run the full registry-change reaction: gate -> promote -> deploy to Cloud Run.
 
     Returns a short status string describing what happened.
     """
@@ -217,5 +202,5 @@ def gate_promote_deploy(max_latency_s: float = 5.0) -> str:
     if not promote_if_better():
         return "not_better"
 
-    deploy_to_endpoint()
+    deploy_to_cloud_run()
     return "promoted_and_deployed"

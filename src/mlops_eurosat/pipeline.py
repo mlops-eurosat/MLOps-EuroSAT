@@ -14,10 +14,10 @@ Compile + submit via ``invoke pipeline-run`` .
 
 from kfp import compiler, dsl
 
-from mlops_eurosat import vertex_registry as vr
+from mlops_eurosat import model_registry as mr
 
-PROJECT_ID = vr.PROJECT_ID
-REGION = vr.REGION
+PROJECT_ID = mr.PROJECT_ID
+REGION = mr.REGION
 TRAIN_IMAGE = f"{REGION}-docker.pkg.dev/{PROJECT_ID}/mlops-eurosat/train:latest"
 PIPELINE_ROOT = "gs://eurosat_models/pipeline-root"
 

@@ -30,7 +30,7 @@ def test_handle_event_triggers_gate_on_upload():
     response reflects its result ("promoted").
     """
     with patch(
-        "mlops_eurosat.registry_trigger.vertex_registry.gate_promote_deploy",
+        "mlops_eurosat.registry_trigger.model_registry.gate_promote_deploy",
         return_value="promoted",
     ) as mock:
         with TestClient(app) as client:

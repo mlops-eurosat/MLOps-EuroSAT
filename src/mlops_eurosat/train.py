@@ -12,7 +12,7 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 from torch.utils.data import DataLoader, TensorDataset
 
-from mlops_eurosat import vertex_registry
+from mlops_eurosat import model_registry
 from mlops_eurosat.model import Model
 
 log = logging.getLogger(__name__)
@@ -88,7 +88,7 @@ def _upload_and_register(best_path: str, val_acc: float | None, run_id: str) -> 
     artifact_uri = f"gs://{MODEL_BUCKET}/{artifact_dir}"
     log.info(f"Uploaded ONNX model to {artifact_uri}/model.onnx")
 
-    vertex_registry.register_candidate(artifact_uri=artifact_uri, val_acc=val_acc)
+    model_registry.register_candidate(artifact_uri=artifact_uri, val_acc=val_acc)
 
 
 @hydra.main(config_path="../../configs", config_name="config", version_base=None)
