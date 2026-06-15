@@ -18,3 +18,4 @@ requests==2.34.2
 pandas==3.0.3
 streamlit==1.57.0
 onnx>=1.16
+onnxruntime>=1.18

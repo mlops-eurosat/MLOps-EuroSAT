@@ -180,31 +180,25 @@ def performance_gate(max_latency_s: float = 5.0, num_predictions: int = 100, ali
     import tempfile
     import time
 
-    import torch
+    import numpy as np
+    import onnxruntime as ort  # type: ignore[import-untyped]
     from google.cloud import storage  # type: ignore[attr-defined]
-
-    from mlops_eurosat.model import Model
 
     model_ref = _versioned_model(alias)
     uri = model_ref.uri
     if not uri:
         raise RuntimeError(f"Model version '{alias}' has no artifact_uri.")
     bucket_name, _, prefix = uri[len("gs://") :].partition("/")
-    blob = storage.Client().bucket(bucket_name).blob(f"{prefix.rstrip('/')}/model.ckpt")
+    blob = storage.Client().bucket(bucket_name).blob(f"{prefix.rstrip('/')}/model.onnx")
 
-    with tempfile.NamedTemporaryFile(suffix=".ckpt") as f:
+    with tempfile.NamedTemporaryFile(suffix=".onnx") as f:
         blob.download_to_filename(f.name)
-        ckpt = torch.load(f.name, map_location="cpu")
+        session = ort.InferenceSession(f.name)
 
-    model = Model()
-    model.load_state_dict(ckpt["state_dict"])
-    model.eval()
-
-    x = torch.randn(1, 3, 64, 64)
+    x = np.random.randn(1, 3, 64, 64).astype(np.float32)
     start = time.perf_counter()
-    with torch.no_grad():
-        for _ in range(num_predictions):
-            model(x)
+    for _ in range(num_predictions):
+        session.run(["logits"], {"image": x})
     elapsed = time.perf_counter() - start
 
     print(f"[gate] {num_predictions} predictions in {elapsed:.3f}s (limit {max_latency_s}s)")
