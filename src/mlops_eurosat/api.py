@@ -58,10 +58,14 @@ def _load_session_from_gcs(storage_uri: str) -> ort.InferenceSession:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print(f"Loading EuroSAT ONNX model from {STORAGE_URI}")
-    app.state.session = _load_session_from_gcs(STORAGE_URI)
+    try:
+        print(f"Loading EuroSAT ONNX model from {STORAGE_URI}")
+        app.state.session = _load_session_from_gcs(STORAGE_URI)
+        print("Model loaded successfully.")
+    except Exception as e:
+        print(f"WARNING: could not load model: {e}. /predict will return 503 until the model is available.")
+        app.state.session = None
     yield
-    print("Cleaning up")
     del app.state.session
 
 
@@ -84,9 +88,13 @@ async def health():
 
 @app.post(PREDICT_ROUTE)
 async def predict(request: Request):
+    from fastapi import HTTPException
+
     body = await request.json()
     instances = body.get("instances", [])
     session = request.app.state.session
+    if session is None:
+        raise HTTPException(status_code=503, detail="Model not loaded. Set AIP_STORAGE_URI and redeploy.")
 
     predictions = []
     for instance in instances:
