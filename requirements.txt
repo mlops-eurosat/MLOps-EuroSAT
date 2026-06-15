@@ -17,3 +17,4 @@ google-cloud-secret-manager>=2.20.0
 requests==2.34.2
 pandas==3.0.3
 streamlit==1.57.0
+onnx>=1.16
