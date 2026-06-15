@@ -168,27 +168,33 @@ def pipeline_run(
         overrides += f" training.max_epochs={epochs}"
     if limit_batches:
         overrides += f" training.limit_train_batches={limit_batches}"
-    train_cmd = f"dvc pull && python -u src/mlops_eurosat/train.py{overrides}"
+    preprocess_cmd = "dvc pull data/raw.dvc -j 16 && dvc repro -f preprocess && dvc push -j 16"
+    train_cmd = f"dvc pull -j 16 && python -u src/mlops_eurosat/train.py{overrides}"
+
+    def _worker_pool_specs(cmd: str) -> list:
+        return [
+            {
+                "machine_spec": {"machine_type": machine_type},
+                "replica_count": 1,
+                "container_spec": {
+                    "image_uri": pl.TRAIN_IMAGE,
+                    "command": ["bash", "-c"],
+                    "args": [cmd],
+                },
+            }
+        ]
 
     package = pl.compile_pipeline()
-    worker_pool_specs = [
-        {
-            "machine_spec": {"machine_type": machine_type},
-            "replica_count": 1,
-            "container_spec": {
-                "image_uri": pl.TRAIN_IMAGE,
-                "command": ["bash", "-c"],
-                "args": [train_cmd],
-            },
-        }
-    ]
 
     aiplatform.init(project=pl.PROJECT_ID, location=pl.REGION)
     job = aiplatform.PipelineJob(
         display_name="eurosat-training-pipeline",
         template_path=package,
         pipeline_root=pl.PIPELINE_ROOT,
-        parameter_values={"worker_pool_specs": worker_pool_specs},
+        parameter_values={
+            "preprocess_specs": _worker_pool_specs(preprocess_cmd),
+            "worker_pool_specs": _worker_pool_specs(train_cmd),
+        },
     )
     job.run(sync=False)
     print("Submitted pipeline job to Vertex AI.")

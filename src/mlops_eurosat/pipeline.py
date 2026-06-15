@@ -1,7 +1,8 @@
 """Vertex AI Pipeline
 
-train (Vertex CustomJob) -> registers the new model as ``staging``.
+preprocess -> train (Vertex CustomJobs) -> registers the new model as ``staging``.
 
+The preprocess step regenerates the processed data via DVC; train runs after it.
 The training step runs our existing ``train`` container as a Vertex CustomJob;
 ``train.py`` uploads the best checkpoint to GCS and registers it in the Vertex
 Model Registry under the ``staging`` alias. The downstream gate -> promote ->
@@ -22,8 +23,19 @@ PIPELINE_ROOT = "gs://eurosat_models/pipeline-root"
 
 
 @dsl.pipeline(name="eurosat-training-pipeline", pipeline_root=PIPELINE_ROOT)
-def eurosat_pipeline(worker_pool_specs: list) -> None:
+def eurosat_pipeline(preprocess_specs: list, worker_pool_specs: list) -> None:
     from google_cloud_pipeline_components.v1.custom_job import CustomTrainingJobOp
+
+    preprocess_task = CustomTrainingJobOp(
+        project=PROJECT_ID,
+        location=REGION,
+        display_name="eurosat-pipeline-preprocess",
+        worker_pool_specs=preprocess_specs,
+    )
+    preprocess_task.set_caching_options(
+        True
+    )  # Set to False for final training runs, only True for faster iteration during development.
+    preprocess_task.set_display_name("preprocess")
 
     train_task = CustomTrainingJobOp(
         project=PROJECT_ID,
@@ -32,6 +44,8 @@ def eurosat_pipeline(worker_pool_specs: list) -> None:
         worker_pool_specs=worker_pool_specs,
     )
     train_task.set_caching_options(False)
+    train_task.set_display_name("train")
+    train_task.after(preprocess_task)
 
 
 def compile_pipeline(path: str = "eurosat_pipeline.json") -> str:
