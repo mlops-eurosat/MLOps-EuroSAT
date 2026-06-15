@@ -1,5 +1,5 @@
 site_name: mlops_eurosat
-site_author: studener
+site_author: Cosima Fröhner, Philip Studener, Michael Speckbacher
 docs_dir: source
 
 theme:

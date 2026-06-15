@@ -1,0 +1,6 @@
+workerPoolSpecs:
+  machineSpec:
+    machineType: n1-standard-32
+  replicaCount: 1
+  containerSpec:
+    imageUri: europe-west3-docker.pkg.dev/mlops-eurosat-496913/mlops-eurosat/train:latest

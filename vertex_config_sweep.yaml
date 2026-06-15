@@ -1,0 +1,11 @@
+workerPoolSpecs:
+  machineSpec:
+    machineType: n1-standard-32
+  replicaCount: 1
+  containerSpec:
+    imageUri: europe-west3-docker.pkg.dev/mlops-eurosat-496913/mlops-eurosat/train:latest
+    command:
+    - bash
+    - -c
+    # Agent needs WANDB_API_KEY before it starts; fetch it from Secret Manager
+    - "dvc pull && export WANDB_API_KEY=$(python -c \"from google.cloud import secretmanager as s; print(s.SecretManagerServiceClient().access_secret_version(name='projects/mlops-eurosat-496913/secrets/wandb-api-key/versions/latest').payload.data.decode())\") && wandb agent --count COUNT_PLACEHOLDER SWEEP_ID_PLACEHOLDER"

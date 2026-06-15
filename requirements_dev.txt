@@ -5,14 +5,22 @@ invoke==2.2.0
 pre-commit==4.1.0
 
 # testing
-pytest==8.3.4
+pytest==9.1.0
 coverage==7.14.1
 pytest-cov==6.1.0
 
 # linting
-ruff==0.15.15
+ruff==0.15.16
 mypy==2.1.0
 
 # docs
 mkdocs-material==9.7.1
-mkdocstrings-python==2.0.1
+mkdocstrings-python==2.0.4
+
+# vertex pipeline
+kfp>=2.16.1
+google-cloud-pipeline-components>=2.14.0
+
+types-PyYAML>=6.0.12.20260518
+pandas-stubs>=3.0.3
+types-requests>=2.33

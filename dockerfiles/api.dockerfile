@@ -6,11 +6,10 @@ RUN apt update && \
 
 COPY src src/
 COPY requirements.txt requirements.txt
-COPY requirements_dev.txt requirements_dev.txt
-COPY README.md README.md
 COPY pyproject.toml pyproject.toml
 
 RUN pip install -r requirements.txt --no-cache-dir --verbose
 RUN pip install . --no-deps --no-cache-dir --verbose
 
-ENTRYPOINT ["uvicorn", "src.mlops_eurosat.api:app", "--host", "0.0.0.0", "--port", "8000"]
+ENV AIP_HTTP_PORT=8080
+ENTRYPOINT ["sh", "-c", "uvicorn mlops_eurosat.api:app --host 0.0.0.0 --port ${AIP_HTTP_PORT:-8080}"]
