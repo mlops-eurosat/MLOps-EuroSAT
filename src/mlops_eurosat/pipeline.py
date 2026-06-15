@@ -34,15 +34,15 @@ def evaluate_model(metrics: Output[Metrics]) -> None:
     from sklearn.metrics import accuracy_score, f1_score
     from torch.utils.data import DataLoader, TensorDataset
 
-    from mlops_eurosat import vertex_registry as vr
+    from mlops_eurosat import model_registry as mr
     from mlops_eurosat.model import Model
 
     # Test data + the freshly registered staging checkpoint.
     subprocess.run(["dvc", "pull", "data/processed"], cwd="/app", check=True)
 
-    aiplatform.init(project=vr.PROJECT_ID, location=vr.REGION)
-    base = aiplatform.Model.list(filter=f'display_name="{vr.MODEL_DISPLAY_NAME}"')[0]
-    staging = aiplatform.Model(model_name=base.resource_name, version=vr.STAGING_ALIAS)
+    aiplatform.init(project=mr.PROJECT_ID, location=mr.REGION)
+    base = aiplatform.Model.list(filter=f'display_name="{mr.MODEL_DISPLAY_NAME}"')[0]
+    staging = aiplatform.Model(model_name=base.resource_name, version=mr.STAGING_ALIAS)
     bucket, _, prefix = staging.uri[len("gs://") :].partition("/")
     storage.Client().bucket(bucket).blob(f"{prefix.rstrip('/')}/model.ckpt").download_to_filename("/app/model.ckpt")
 
