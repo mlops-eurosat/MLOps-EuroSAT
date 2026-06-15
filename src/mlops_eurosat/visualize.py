@@ -36,7 +36,6 @@ def per_class_metrics_figure(targets: list[int], preds: list[int], classes: list
     ax.set_xticklabels(classes, rotation=45, ha="right")
     ax.set_ylim(0, 1)
     ax.set_ylabel("score")
-    ax.set_title("Per-class precision / recall / F1")
     ax.legend()
     fig.tight_layout()
     return fig
