@@ -1,24 +1,12 @@
 import base64
 import os
 
-import google.auth
-import google.auth.transport.requests
 import pandas as pd
 import requests
 import streamlit as st
 from PIL import Image
 
 API_URL = os.environ.get("API_URL", "http://localhost:8000/predict")
-
-
-def _auth_headers() -> dict:
-    """Return an Authorization header when talking to a Vertex AI endpoint."""
-    if "aiplatform.googleapis.com" not in API_URL:
-        return {}
-    creds, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
-    creds.refresh(google.auth.transport.requests.Request())
-    return {"Authorization": f"Bearer {creds.token}"}
-
 
 IMAGE_SIZE = 64  # or whatever your model actually uses
 
@@ -63,7 +51,6 @@ if uploaded_file:
         response = requests.post(
             API_URL,
             json={"instances": [{"image_b64": image_b64}]},
-            headers=_auth_headers(),
             timeout=30,
         )
 

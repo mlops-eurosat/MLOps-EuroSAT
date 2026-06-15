@@ -16,10 +16,10 @@ Compile + submit via ``invoke pipeline-run`` .
 from kfp import compiler, dsl
 from kfp.dsl import HTML, ClassificationMetrics, Metrics, Output
 
-from mlops_eurosat import vertex_registry as vr
+from mlops_eurosat import model_registry as mr
 
-PROJECT_ID = vr.PROJECT_ID
-REGION = vr.REGION
+PROJECT_ID = mr.PROJECT_ID
+REGION = mr.REGION
 TRAIN_IMAGE = f"{REGION}-docker.pkg.dev/{PROJECT_ID}/mlops-eurosat/train:latest"
 PIPELINE_ROOT = "gs://eurosat_models/pipeline-root"
 
@@ -41,15 +41,15 @@ def evaluate_model(
     from google.cloud import aiplatform, storage  # type: ignore[attr-defined]
     from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
 
-    from mlops_eurosat import vertex_registry as vr
+    from mlops_eurosat import model_registry as mr
     from mlops_eurosat import visualize
 
     # Test data + the freshly registered staging model (served as ONNX).
     subprocess.run(["dvc", "pull", "data/processed"], cwd="/app", check=True)
 
-    aiplatform.init(project=vr.PROJECT_ID, location=vr.REGION)
-    base = aiplatform.Model.list(filter=f'display_name="{vr.MODEL_DISPLAY_NAME}"')[0]
-    staging = aiplatform.Model(model_name=base.resource_name, version=vr.STAGING_ALIAS)
+    aiplatform.init(project=mr.PROJECT_ID, location=mr.REGION)
+    base = aiplatform.Model.list(filter=f'display_name="{mr.MODEL_DISPLAY_NAME}"')[0]
+    staging = aiplatform.Model(model_name=base.resource_name, version=mr.STAGING_ALIAS)
     bucket, _, prefix = staging.uri[len("gs://") :].partition("/")
     storage.Client().bucket(bucket).blob(f"{prefix.rstrip('/')}/model.onnx").download_to_filename("/app/model.onnx")
 
