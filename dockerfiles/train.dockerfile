@@ -17,6 +17,9 @@ COPY dvc.lock dvc.lock
 COPY data/raw.dvc data/raw.dvc
 
 
+# Install the CPU-only build of torch first (we run on CPU machines)
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install torch==2.12.0 --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
 RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt --no-cache-dir
 RUN pip install . --no-deps --no-cache-dir --verbose
 RUN pip install dvc[gs] google-cloud-storage
