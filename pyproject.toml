@@ -5,9 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mlops_eurosat"
 version = "0.0.1"
-description = "A short description of the project."
+description = "MLOps pipeline for land use classification on the EuroSAT dataset."
 authors = [
-  { name = "studener", email = "your@email.com" },
+  { name = "Cosima Fröhner", email = "c.froehner@campus.lmu.de" },
+  { name = "Philip Studener", email = "p.studener@campus.lmu.de" },
+  { name = "Michael Speckbacher", email = "mi.speckbacher@campus.lmu.de" },
 ]
 
 keywords = ["machine learning", "MLOps"]

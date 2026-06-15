@@ -1,6 +1,6 @@
 # mlops_eurosat
 
-A short description of the project.
+MLOps pipeline for land use classification on the EuroSAT dataset.
 
 ## Project structure
 
@@ -9,16 +9,24 @@ The directory structure of the project looks like this:
 ├── .github/                  # Github actions and dependabot
 │   ├── dependabot.yaml
 │   └── workflows/
+│       ├── cml_data.yml
+│       ├── linting.yaml
 │       └── tests.yaml
 ├── configs/                  # Configuration files
+│   ├── model/
+│   ├── training/
+│   ├── wandb/
+│   ├── config.yaml
+│   └── sweep.yaml
 ├── data/                     # Data directory
 │   ├── processed
 │   └── raw
 ├── dockerfiles/              # Dockerfiles
-│   ├── api.Dockerfile
-│   └── train.Dockerfile
+│   ├── api.dockerfile
+│   ├── train.dockerfile
+│   └── trigger.dockerfile
 ├── docs/                     # Documentation
-│   ├── mkdocs.yml
+│   ├── mkdocs.yaml
 │   └── source/
 │       └── index.md
 ├── models/                   # Trained models
@@ -26,18 +34,24 @@ The directory structure of the project looks like this:
 ├── reports/                  # Reports
 │   └── figures/
 ├── src/                      # Source code
-│   ├── project_name/
+│   ├── mlops_eurosat/
 │   │   ├── __init__.py
 │   │   ├── api.py
 │   │   ├── data.py
+│   │   ├── dataset_statistics.py
 │   │   ├── evaluate.py
-│   │   ├── models.py
+│   │   ├── frontend.py
+│   │   ├── model.py
+│   │   ├── pipeline.py
+│   │   ├── registry_trigger.py
 │   │   ├── train.py
+│   │   ├── vertex_registry.py
 │   │   └── visualize.py
 └── tests/                    # Tests
 │   ├── __init__.py
 │   ├── test_api.py
 │   ├── test_data.py
+│   ├── test_evaluate.py
 │   └── test_model.py
 ├── .gitignore
 ├── .pre-commit-config.yaml
