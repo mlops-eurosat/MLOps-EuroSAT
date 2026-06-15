@@ -6,7 +6,6 @@ RUN apt update && \
 
 COPY src src/
 COPY requirements.txt requirements.txt
-COPY README.md README.md
 COPY pyproject.toml pyproject.toml
 
 RUN pip install -r requirements.txt --no-cache-dir
