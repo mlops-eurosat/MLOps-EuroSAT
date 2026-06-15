@@ -42,8 +42,11 @@ python_version = "3.12"
 warn_unused_configs = true
 
 [[tool.mypy.overrides]]
-module = ["sklearn.*", "google.cloud.*", "kfp.*", "google_cloud_pipeline_components.*"]
+module = ["sklearn.*", "google.cloud.*", "kfp.*", "google_cloud_pipeline_components.*", "onnxruntime"]
 ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+addopts = "--cov=src/mlops_eurosat --cov-report=term-missing"
 
 [[tool.mypy.overrides]]
 module = ["wandb", "wandb.*", "google.cloud.*", "requests"]

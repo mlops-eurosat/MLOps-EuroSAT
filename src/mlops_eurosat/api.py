@@ -5,18 +5,14 @@ import tempfile
 from contextlib import asynccontextmanager
 
 import numpy as np
-import torch
-import torch.nn.functional as F  # noqa: N812
+import onnxruntime as ort
 from fastapi import FastAPI, Request
 from google.cloud import storage  # type: ignore[attr-defined]
 from PIL import Image
 
-from mlops_eurosat.model import Model
-
 HEALTH_ROUTE = os.environ.get("AIP_HEALTH_ROUTE", "/health")
 PREDICT_ROUTE = os.environ.get("AIP_PREDICT_ROUTE", "/predict")
 STORAGE_URI = os.environ.get("AIP_STORAGE_URI", "gs://eurosat_models/checkpoints")
-CHECKPOINT_BLOB = "model.ckpt"
 
 CLASS_NAMES = [
     "AnnualCrop",
@@ -32,60 +28,50 @@ CLASS_NAMES = [
 ]
 
 
-def preprocess(image: Image.Image) -> torch.Tensor:
-    """Resize image and convert to a normalised CHW tensor."""
+def preprocess(image: Image.Image) -> np.ndarray:
+    """Resize and normalise an image into a (1, 3, 64, 64) float32 array."""
     image = image.resize((64, 64))
-
     arr = np.asarray(image, dtype=np.float32) / 255.0
-    tensor = torch.from_numpy(arr).permute(2, 0, 1)  # HWC -> CHW
+    arr = arr.transpose(2, 0, 1)  # HWC -> CHW
+    mean = np.array([0.3439, 0.3799, 0.4074], dtype=np.float32)
+    std = np.array([0.2026, 0.1369, 0.1155], dtype=np.float32)
+    arr = (arr - mean[:, None, None]) / std[:, None, None]
+    return arr[None]  # add batch dim -> (1, 3, 64, 64)
 
-    mean = torch.tensor([0.3439, 0.3799, 0.4074])
-    std = torch.tensor([0.2026, 0.1369, 0.1155])
-    tensor = (tensor - mean[:, None, None]) / std[:, None, None]
-    return tensor
+
+def _softmax(x: np.ndarray) -> np.ndarray:
+    e = np.exp(x - x.max())
+    return e / e.sum()
 
 
-def _load_checkpoint_from_gcs(storage_uri: str, device: torch.device) -> dict:
-    """Download the checkpoint from a gs:// directory and load it onto `device`."""
+def _load_session_from_gcs(storage_uri: str) -> ort.InferenceSession:
+    """Download model.onnx from a gs:// directory and return an inference session."""
     assert storage_uri.startswith("gs://"), f"Expected a gs:// URI, got {storage_uri}"
     bucket_name, _, prefix = storage_uri[len("gs://") :].partition("/")
-    blob_path = f"{prefix.rstrip('/')}/{CHECKPOINT_BLOB}" if prefix else CHECKPOINT_BLOB
+    blob_path = f"{prefix.rstrip('/')}/model.onnx" if prefix else "model.onnx"
 
-    client = storage.Client()
-    blob = client.bucket(bucket_name).blob(blob_path)
-    with tempfile.NamedTemporaryFile(suffix=".ckpt") as f:
+    blob = storage.Client().bucket(bucket_name).blob(blob_path)
+    with tempfile.NamedTemporaryFile(suffix=".onnx") as f:
         blob.download_to_filename(f.name)
-        return torch.load(f.name, map_location=device)
+        return ort.InferenceSession(f.name)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print(f"Loading EuroSAT model from {STORAGE_URI}")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    checkpoint = _load_checkpoint_from_gcs(STORAGE_URI, device)
-    model = Model()
-    model.load_state_dict(checkpoint["state_dict"])
-    model.to(device)
-    model.eval()
-
-    app.state.device = device
-    app.state.model = model
+    print(f"Loading EuroSAT ONNX model from {STORAGE_URI}")
+    app.state.session = _load_session_from_gcs(STORAGE_URI)
     yield
-
     print("Cleaning up")
-    del app.state.model
-    del app.state.device
+    del app.state.session
 
 
 app = FastAPI(lifespan=lifespan)
 
 
 def _decode_instance(instance: dict | str) -> Image.Image:
-    """Decode a single Vertex prediction instance into a PIL image.
+    """Decode a Vertex prediction instance into a PIL image.
 
-    Accepts ``{"image_b64": "<base64>"}`` (or a bare base64 string) holding the
-    raw bytes of a JPEG/PNG image.
+    Accepts ``{"image_b64": "<base64>"}`` or a bare base64 string.
     """
     b64 = instance["image_b64"] if isinstance(instance, dict) else instance
     return Image.open(io.BytesIO(base64.b64decode(b64))).convert("RGB")
@@ -100,24 +86,20 @@ async def health():
 async def predict(request: Request):
     body = await request.json()
     instances = body.get("instances", [])
-
-    model = request.app.state.model
-    device = request.app.state.device
+    session = request.app.state.session
 
     predictions = []
     for instance in instances:
         image = _decode_instance(instance)
-        x = preprocess(image).unsqueeze(0).to(device)
-
-        with torch.no_grad():
-            probs = F.softmax(model(x), dim=1)[0]
-
-        idx = int(torch.argmax(probs))
+        x = preprocess(image)
+        logits = session.run(["logits"], {"image": x})[0][0]  # (10,)
+        probs = _softmax(logits)
+        idx = int(np.argmax(probs))
         predictions.append(
             {
                 "prediction": idx,
                 "class_name": CLASS_NAMES[idx],
-                "probabilities": {cls: float(p) for cls, p in zip(CLASS_NAMES, probs.cpu().numpy())},
+                "probabilities": {cls: float(p) for cls, p in zip(CLASS_NAMES, probs)},
             }
         )
 

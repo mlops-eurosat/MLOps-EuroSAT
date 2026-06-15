@@ -50,14 +50,28 @@ def _make_loader(path: str, batch_size: int, shuffle: bool, num_workers: int) ->
     )
 
 
-def _upload_and_register(best_path: str, val_acc: float | None, run_id: str) -> None:
-    """Upload the best checkpoint to GCS and register it in the Vertex Model Registry.
+def _export_onnx(best_path: str) -> str:
+    """Load the best checkpoint and export it to ONNX. Returns the ONNX file path."""
+    checkpoint = torch.load(best_path, map_location="cpu", weights_only=False)
+    model = Model()
+    model.load_state_dict(checkpoint["state_dict"])
+    model.eval()
 
-    W&B is used only for experiment tracking; The checkpoint is written to
-    ``gs://{MODEL_BUCKET}/checkpoints/{run_id}/model.ckpt`` and registered as a new
-    version aliased ``staging``; the serving API loads it from that same GCS dir
-    via ``AIP_STORAGE_URI``.
-    """
+    onnx_path = best_path.replace(".ckpt", ".onnx")
+    torch.onnx.export(
+        model,
+        (torch.randn(1, 3, 64, 64),),
+        onnx_path,
+        input_names=["image"],
+        output_names=["logits"],
+        dynamic_axes={"image": {0: "batch"}},
+    )
+    log.info(f"Exported ONNX model to {onnx_path}")
+    return onnx_path
+
+
+def _upload_and_register(best_path: str, val_acc: float | None, run_id: str) -> None:
+    """Export to ONNX, upload to GCS, and register in the Vertex Model Registry."""
     if not best_path:
         log.warning("No best_model_path available; skipping model registration.")
         return
@@ -65,12 +79,14 @@ def _upload_and_register(best_path: str, val_acc: float | None, run_id: str) -> 
         log.warning("No numeric val_acc available; skipping model registration.")
         return
 
+    onnx_path = _export_onnx(best_path)
+
     artifact_dir = f"checkpoints/{run_id}"
-    blob_path = f"{artifact_dir}/model.ckpt"
-    storage.Client().bucket(MODEL_BUCKET).blob(blob_path).upload_from_filename(best_path)
+    bucket = storage.Client().bucket(MODEL_BUCKET)
+    bucket.blob(f"{artifact_dir}/model.onnx").upload_from_filename(onnx_path)
 
     artifact_uri = f"gs://{MODEL_BUCKET}/{artifact_dir}"
-    log.info(f"Uploaded checkpoint to {artifact_uri}/model.ckpt")
+    log.info(f"Uploaded ONNX model to {artifact_uri}/model.onnx")
 
     vertex_registry.register_candidate(artifact_uri=artifact_uri, val_acc=val_acc)
 
