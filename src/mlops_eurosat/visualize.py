@@ -163,11 +163,11 @@ def _download_staging_onnx(dest: str = "/tmp/model.onnx") -> tuple[str, str, dat
     """Download the staging ``model.onnx`` from GCS; return (path, artifact_uri, trained)."""
     from google.cloud import aiplatform, storage  # type: ignore[attr-defined]
 
-    from mlops_eurosat import vertex_registry as vr
+    from mlops_eurosat import model_registry as mr
 
-    aiplatform.init(project=vr.PROJECT_ID, location=vr.REGION)
-    base = aiplatform.Model.list(filter=f'display_name="{vr.MODEL_DISPLAY_NAME}"')[0]
-    staging = aiplatform.Model(model_name=base.resource_name, version=vr.STAGING_ALIAS)
+    aiplatform.init(project=mr.PROJECT_ID, location=mr.REGION)
+    base = aiplatform.Model.list(filter=f'display_name="{mr.MODEL_DISPLAY_NAME}"')[0]
+    staging = aiplatform.Model(model_name=base.resource_name, version=mr.STAGING_ALIAS)
     uri = staging.uri
     if not Path(dest).exists():
         bucket, _, prefix = uri[len("gs://") :].partition("/")
