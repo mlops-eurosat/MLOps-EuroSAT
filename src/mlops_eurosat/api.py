@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 import numpy as np
 import onnxruntime as ort
-from fastapi import BackgroundTasks, FastAPI, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from google.cloud import storage  # type: ignore[attr-defined]
 from PIL import Image
 
@@ -65,12 +65,18 @@ def _load_session_from_gcs(storage_uri: str, tmpdir: str) -> ort.InferenceSessio
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print(f"Loading EuroSAT ONNX model from {STORAGE_URI}")
-    app.state.tmpdir = tempfile.TemporaryDirectory()
-    app.state.session = _load_session_from_gcs(STORAGE_URI, app.state.tmpdir.name)
+    try:
+        print(f"Loading EuroSAT ONNX model from {STORAGE_URI}")
+        app.state.tmpdir = tempfile.TemporaryDirectory()
+        app.state.session = _load_session_from_gcs(STORAGE_URI, app.state.tmpdir.name)
+        print("Model loaded successfully.")
+    except Exception as e:
+        print(f"WARNING: could not load model: {e}. /predict will return 503 until the model is available.")
+        app.state.session = None
     yield
     print("Cleaning up")
-    app.state.tmpdir.cleanup()
+    if hasattr(app.state, "tmpdir"):
+        app.state.tmpdir.cleanup()
     del app.state.session
 
 
@@ -110,6 +116,8 @@ async def predict(request: Request, background_tasks: BackgroundTasks):
     body = await request.json()
     instances = body.get("instances", [])
     session = request.app.state.session
+    if session is None:
+        raise HTTPException(status_code=503, detail="Model not loaded. Set AIP_STORAGE_URI and redeploy.")
 
     predictions = []
     for instance in instances:
