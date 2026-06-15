@@ -48,8 +48,8 @@ steps:
       - 'dockerfiles/frontend.dockerfile'
       - '.'
   - id: redeploy-endpoint
-    name: 'europe-west3-docker.pkg.dev/mlops-eurosat-496913/mlops-eurosat/api:latest'
-    waitFor: ['build-api']
+    name: 'europe-west3-docker.pkg.dev/mlops-eurosat-496913/mlops-eurosat/trigger:latest'
+    waitFor: ['build-api', 'build-trigger']
     entrypoint: 'python'
     args:
       - '-c'
