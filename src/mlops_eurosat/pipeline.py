@@ -14,7 +14,7 @@ Compile + submit via ``invoke pipeline-run`` .
 """
 
 from kfp import compiler, dsl
-from kfp.dsl import Metrics, Output
+from kfp.dsl import HTML, ClassificationMetrics, Metrics, Output
 
 from mlops_eurosat import vertex_registry as vr
 
@@ -25,45 +25,64 @@ PIPELINE_ROOT = "gs://eurosat_models/pipeline-root"
 
 
 @dsl.component(base_image=TRAIN_IMAGE)
-def evaluate_model(metrics: Output[Metrics]) -> None:
-    """Score the freshly registered ``staging`` model on the test set and log metrics."""
+def evaluate_model(
+    metrics: Output[Metrics],
+    classification_metrics: Output[ClassificationMetrics],
+    plots: Output[HTML],
+) -> None:
+    """Score the freshly registered ``staging`` model on the test set, log metrics
+    and result visualizations (confusion matrix, per-class metrics, misclassified
+    examples)."""
     import subprocess
 
+    import numpy as np
+    import onnxruntime as ort
     import torch
     from google.cloud import aiplatform, storage  # type: ignore[attr-defined]
-    from sklearn.metrics import accuracy_score, f1_score
-    from torch.utils.data import DataLoader, TensorDataset
+    from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
 
     from mlops_eurosat import vertex_registry as vr
-    from mlops_eurosat.model import Model
+    from mlops_eurosat import visualize
 
-    # Test data + the freshly registered staging checkpoint.
+    # Test data + the freshly registered staging model (served as ONNX).
     subprocess.run(["dvc", "pull", "data/processed"], cwd="/app", check=True)
 
     aiplatform.init(project=vr.PROJECT_ID, location=vr.REGION)
     base = aiplatform.Model.list(filter=f'display_name="{vr.MODEL_DISPLAY_NAME}"')[0]
     staging = aiplatform.Model(model_name=base.resource_name, version=vr.STAGING_ALIAS)
     bucket, _, prefix = staging.uri[len("gs://") :].partition("/")
-    storage.Client().bucket(bucket).blob(f"{prefix.rstrip('/')}/model.ckpt").download_to_filename("/app/model.ckpt")
+    storage.Client().bucket(bucket).blob(f"{prefix.rstrip('/')}/model.onnx").download_to_filename("/app/model.onnx")
 
-    model = Model()
-    ckpt = torch.load("/app/model.ckpt", map_location="cpu", weights_only=False)
-    model.load_state_dict(ckpt["state_dict"])
-    model.eval()
+    session = ort.InferenceSession("/app/model.onnx", providers=["CPUExecutionProvider"])
+    input_name = session.get_inputs()[0].name
 
     data = torch.load("/app/data/processed/test.pt", weights_only=False)
-    loader = DataLoader(TensorDataset(data["images"], data["targets"]), batch_size=32)
+    classes = data["classes"]
+    images = data["images"].numpy().astype("float32")
+    targets = data["targets"].tolist()
 
     preds: list[int] = []
-    targets: list[int] = []
-    with torch.no_grad():
-        for images, labels in loader:
-            preds.extend(model(images).argmax(dim=1).tolist())
-            targets.extend(labels.tolist())
+    for start in range(0, len(images), 256):
+        logits = session.run(None, {input_name: images[start : start + 256]})[0]
+        preds.extend(np.asarray(logits).argmax(axis=1).tolist())
 
     metrics.log_metric("accuracy", float(accuracy_score(targets, preds)))
     metrics.log_metric("macro_f1", float(f1_score(targets, preds, average="macro")))
     metrics.log_metric("weighted_f1", float(f1_score(targets, preds, average="weighted")))
+
+    # Confusion matrix -> rendered natively by Vertex.
+    matrix = confusion_matrix(targets, preds, labels=list(range(len(classes))))
+    classification_metrics.log_confusion_matrix(classes, matrix.tolist())
+
+    # Per-class metrics + misclassified examples -> single HTML artifact.
+    figures = {
+        "Per-class precision / recall / F1": visualize.per_class_metrics_figure(targets, preds, classes),
+        "Misclassified examples": visualize.misclassified_grid_figure(
+            data["images"], targets, preds, classes, data["mean"], data["std"]
+        ),
+    }
+    with open(plots.path, "w") as f:
+        f.write(visualize.figures_to_html(figures))
 
 
 @dsl.pipeline(name="eurosat-training-pipeline", pipeline_root=PIPELINE_ROOT)

@@ -65,6 +65,7 @@ def _export_onnx(best_path: str) -> str:
         input_names=["image"],
         output_names=["logits"],
         dynamic_axes={"image": {0: "batch"}},
+        dynamo=False,
     )
     log.info(f"Exported ONNX model to {onnx_path}")
     return onnx_path
