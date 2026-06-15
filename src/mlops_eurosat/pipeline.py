@@ -66,23 +66,30 @@ def evaluate_model(
         logits = session.run(None, {input_name: images[start : start + 256]})[0]
         preds.extend(np.asarray(logits).argmax(axis=1).tolist())
 
-    metrics.log_metric("accuracy", float(accuracy_score(targets, preds)))
-    metrics.log_metric("macro_f1", float(f1_score(targets, preds, average="macro")))
-    metrics.log_metric("weighted_f1", float(f1_score(targets, preds, average="weighted")))
+    scores = {
+        "accuracy": float(accuracy_score(targets, preds)),
+        "macro_f1": float(f1_score(targets, preds, average="macro")),
+        "weighted_f1": float(f1_score(targets, preds, average="weighted")),
+    }
+    for name, value in scores.items():
+        metrics.log_metric(name, value)
 
     # Confusion matrix -> rendered natively by Vertex.
     matrix = confusion_matrix(targets, preds, labels=list(range(len(classes))))
     classification_metrics.log_confusion_matrix(classes, matrix.tolist())
 
-    # Per-class metrics + misclassified examples -> single HTML artifact.
+    # Model header (artifact + W&B run link + training time)
+    meta = visualize.traceability_meta(staging.uri, staging.version_create_time)
+    tables = {"Per-class metrics": visualize.per_class_table(targets, preds, classes)}
+
+    # Model header + summary metrics + per-class table + figures -> single HTML artifact.
     figures = {
-        "Per-class precision / recall / F1": visualize.per_class_metrics_figure(targets, preds, classes),
         "Misclassified examples": visualize.misclassified_grid_figure(
             data["images"], targets, preds, classes, data["mean"], data["std"]
         ),
     }
     with open(plots.path, "w") as f:
-        f.write(visualize.figures_to_html(figures))
+        f.write(visualize.figures_to_html(figures, meta=meta, metrics=scores, tables=tables))
 
 
 @dsl.pipeline(name="eurosat-training-pipeline", pipeline_root=PIPELINE_ROOT)
