@@ -3,9 +3,11 @@ batch_size: 64
 lr: 1e-3
 max_epochs: 50
 patience: 7
-num_workers: 8
+num_workers: 2
 limit_train_batches: 1.0
 log_every_n_steps: 10
 checkpoint_dir: models/checkpoints
+# Lightning profiler for training runs: null | "simple" | "advanced"
+profiler: null
 # Upload the best checkpoint to GCS and register it in the Vertex Model Registry
 register_model: true
