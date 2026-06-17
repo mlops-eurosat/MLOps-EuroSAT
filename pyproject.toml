@@ -42,16 +42,43 @@ python_version = "3.12"
 warn_unused_configs = true
 
 [[tool.mypy.overrides]]
-module = ["sklearn.*", "google.cloud.*", "kfp.*", "google_cloud_pipeline_components.*", "onnxruntime"]
+module = [
+  "sklearn.*",
+  "google.cloud.*",
+  "kfp.*",
+  "google_cloud_pipeline_components.*",
+  "onnxruntime",
+  "torch",
+  "torch.*",
+  "pytorch_lightning",
+  "pytorch_lightning.*",
+  "torchmetrics",
+  "torchmetrics.*",
+  "hydra",
+  "hydra.*",
+  "omegaconf",
+  "fastapi",
+  "fastapi.*",
+  "starlette",
+  "starlette.*",
+  "pydantic",
+  "pydantic.*",
+  "PIL",
+  "PIL.*",
+  "matplotlib",
+  "matplotlib.*",
+  "streamlit",
+  "typer",
+  "uvicorn",
+  "uvicorn.*",
+  "wandb",
+  "wandb.*",
+  "requests",
+]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 addopts = "--cov=src/mlops_eurosat --cov-report=term-missing"
-
-[[tool.mypy.overrides]]
-module = ["wandb", "wandb.*", "google.cloud.*", "requests"]
-ignore_missing_imports = true
-follow_imports = "skip"
 
 [tool.ruff.lint.isort]
 known-first-party = ["mlops_eurosat"]

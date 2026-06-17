@@ -18,27 +18,16 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Cache virtualenv
-        uses: actions/cache@v4
-        id: cache-venv
-        with:
-          path: .venv
-          key: venv-ubuntu-latest-3.12-${{ hashFiles('requirements*.txt', 'pyproject.toml') }}
-
-      - name: Install dependencies
-        if: steps.cache-venv.outputs.cache-hit != 'true'
+      - name: Install lint tools
         run: |
-          python -m venv .venv
-          .venv/bin/pip install -U pip setuptools wheel
-          .venv/bin/pip install -r requirements.txt
-          .venv/bin/pip install -r requirements_dev.txt
-          .venv/bin/pip install -e .
+          pip install ruff mypy types-PyYAML pandas-stubs types-requests numpy
+          pip install -e . --no-deps
 
       - name: ruff linter
-        run: .venv/bin/ruff check .
+        run: ruff check .
 
       - name: ruff formatter
-        run: .venv/bin/ruff format . --check
+        run: ruff format . --check
 
       - name: mypy type checking
-        run: rm -rf build/ && .venv/bin/mypy .
+        run: rm -rf build/ && mypy .
