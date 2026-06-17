@@ -151,6 +151,9 @@ def train(cfg: DictConfig) -> None:
         default_root_dir=cfg.training.checkpoint_dir,
         limit_train_batches=cfg.training.limit_train_batches,
         log_every_n_steps=cfg.training.log_every_n_steps,
+        # Per-step timing breakdown when set; null disables it for normal runs.
+        # "simple"/"advanced" give Python-level (per-hook) timings.
+        profiler=cfg.training.profiler,
     )
 
     trainer.fit(model, train_loader, val_loader)
