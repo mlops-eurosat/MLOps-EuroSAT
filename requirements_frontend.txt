@@ -2,3 +2,5 @@ streamlit==1.57.0
 requests==2.34.2
 pillow==12.2.0
 pandas==3.0.3
+folium==0.19.6
+streamlit-folium==0.25.0
