@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 import numpy as np
 import onnxruntime as ort
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 from google.cloud import storage  # type: ignore[attr-defined]
 from PIL import Image
 
@@ -112,7 +112,7 @@ async def health():
 
 
 @app.post(PREDICT_ROUTE)
-async def predict(request: Request, background_tasks: BackgroundTasks):
+async def predict(request: Request):
     body = await request.json()
     instances = body.get("instances", [])
     session = request.app.state.session
@@ -128,7 +128,7 @@ async def predict(request: Request, background_tasks: BackgroundTasks):
         idx = int(np.argmax(probs))
         class_name = CLASS_NAMES[idx]
 
-        background_tasks.add_task(_log_image, image, class_name)
+        _log_image(image, class_name)
 
         predictions.append(
             {
