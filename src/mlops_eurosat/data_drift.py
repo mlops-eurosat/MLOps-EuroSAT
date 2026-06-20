@@ -109,6 +109,23 @@ def _download_prediction_images(bucket_name: str, prefix: str = "predictions/") 
     return images, targets
 
 
+def save_reference_embeddings(
+    train_pt: Path = Path("data/processed/train.pt"),
+    bucket: str = os.environ.get("MONITORING_BUCKET", "eurosat_monitoring"),
+) -> None:
+    """Pre-compute CLIP embeddings for training data and save to GCS (run once)."""
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model, processor = _load_clip(device)
+    ref_images, ref_targets = _load_reference_images(train_pt)
+    print("Extracting CLIP embeddings for reference data...")
+    ref_embeddings = _embed_pil_images(ref_images, model, processor, device)
+
+    with tempfile.NamedTemporaryFile(suffix=".npz", delete=False) as f:
+        np.savez(f.name, embeddings=ref_embeddings, targets=np.array(ref_targets))
+        storage.Client().bucket(bucket).blob("reference/embeddings.npz").upload_from_filename(f.name)
+    print(f"Saved reference embeddings to gs://{bucket}/reference/embeddings.npz")
+
+
 def data_drift(
     bucket: str = os.environ.get("MONITORING_BUCKET", "eurosat_monitoring"),
     train_pt: Path = Path("data/processed/train.pt"),
