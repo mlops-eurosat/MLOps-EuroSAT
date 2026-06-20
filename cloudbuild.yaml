@@ -106,8 +106,7 @@ steps:
       - '--memory=4Gi'
       - '--cpu=2'
       - '--timeout=300'
-      - '--set-env-vars=MONITORING_BUCKET=eurosat_monitoring'
-      - '--allow-unauthenticated'
+      - '--set-env-vars=MONITORING_BUCKET=eurosat_monitoring,MIN_SAMPLES=100,MAX_STALENESS_HOURS=48'
 images:
   - 'europe-west3-docker.pkg.dev/mlops-eurosat-496913/mlops-eurosat/train:latest'
   - 'europe-west3-docker.pkg.dev/mlops-eurosat-496913/mlops-eurosat/api:latest'
