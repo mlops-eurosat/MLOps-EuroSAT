@@ -57,6 +57,8 @@ def _export_onnx(best_path: str) -> str:
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
 
+    import onnx  # type: ignore[import-untyped]
+
     onnx_path = best_path.replace(".ckpt", ".onnx")
     torch.onnx.export(
         model,
@@ -67,6 +69,8 @@ def _export_onnx(best_path: str) -> str:
         dynamic_axes={"image": {0: "batch"}},
         dynamo=False,
     )
+    # Ensure weights are inlined so serving only needs the single .onnx file.
+    onnx.save_model(onnx.load(onnx_path), onnx_path, save_as_external_data=False)
     log.info(f"Exported ONNX model to {onnx_path}")
     return onnx_path
 
@@ -147,6 +151,9 @@ def train(cfg: DictConfig) -> None:
         default_root_dir=cfg.training.checkpoint_dir,
         limit_train_batches=cfg.training.limit_train_batches,
         log_every_n_steps=cfg.training.log_every_n_steps,
+        # Per-step timing breakdown when set; null disables it for normal runs.
+        # "simple"/"advanced" give Python-level (per-hook) timings.
+        profiler=cfg.training.profiler,
     )
 
     trainer.fit(model, train_loader, val_loader)
