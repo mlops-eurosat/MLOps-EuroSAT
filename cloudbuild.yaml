@@ -101,7 +101,7 @@ steps:
       - 'eurosat-monitoring'
       - '--image=europe-west3-docker.pkg.dev/mlops-eurosat-496913/mlops-eurosat/monitoring:latest'
       - '--region=europe-west3'
-      - '--no-allow-unauthenticated'
+      - '--allow-unauthenticated'
       - '--port=8080'
       - '--memory=4Gi'
       - '--cpu=2'
