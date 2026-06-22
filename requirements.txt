@@ -19,4 +19,4 @@ pandas==3.0.3
 streamlit==1.57.0
 onnx>=1.16
 onnxruntime>=1.18
-google-cloud-run>=0.10
+google-cloud-run>=0.16.0

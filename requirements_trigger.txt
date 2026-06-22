@@ -4,4 +4,4 @@ numpy==2.4.6
 onnxruntime>=1.18
 google-cloud-aiplatform>=1.157.0
 google-cloud-storage>=2.18.0
-google-cloud-run>=0.10
+google-cloud-run>=0.16.0
