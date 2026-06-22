@@ -19,7 +19,7 @@ mkdocstrings-python==2.0.4
 
 # vertex pipeline
 kfp>=2.16.1
-google-cloud-pipeline-components>=2.14.0
+google-cloud-pipeline-components>=2.22.0
 
 types-PyYAML>=6.0.12.20260518
 pandas-stubs>=3.0.3
