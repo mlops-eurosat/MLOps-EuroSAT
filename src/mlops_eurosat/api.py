@@ -9,6 +9,7 @@ import onnxruntime as ort
 from fastapi import FastAPI, Request
 from google.cloud import storage  # type: ignore[attr-defined]
 from PIL import Image
+from prometheus_client import Counter, Histogram, Summary, make_asgi_app
 
 HEALTH_ROUTE = os.environ.get("AIP_HEALTH_ROUTE", "/health")
 PREDICT_ROUTE = os.environ.get("AIP_PREDICT_ROUTE", "/predict")
@@ -70,6 +71,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.mount("/metrics", make_asgi_app())
+
+prediction_requests = Counter("prediction_requests_total", "Total number of prediction requests")
+prediction_errors = Counter("prediction_errors_total", "Total number of prediction errors")
+prediction_latency = Histogram("prediction_latency_seconds", "Prediction latency in seconds")
+instances_per_request = Summary("prediction_instances_per_request", "Number of instances per request")
 
 
 def _decode_instance(instance: dict | str) -> Image.Image:
@@ -90,25 +97,36 @@ async def health():
 async def predict(request: Request):
     from fastapi import HTTPException
 
-    body = await request.json()
-    instances = body.get("instances", [])
-    session = request.app.state.session
-    if session is None:
-        raise HTTPException(status_code=503, detail="Model not loaded. Set AIP_STORAGE_URI and redeploy.")
+    prediction_requests.inc()
+    with prediction_latency.time():
+        try:
+            body = await request.json()
+            instances = body.get("instances", [])
+            instances_per_request.observe(len(instances))
+            session = request.app.state.session
+            if session is None:
+                raise HTTPException(status_code=503, detail="Model not loaded. Set AIP_STORAGE_URI and redeploy.")
 
-    predictions = []
-    for instance in instances:
-        image = _decode_instance(instance)
-        x = preprocess(image)
-        logits = session.run(["logits"], {"image": x})[0][0]  # (10,)
-        probs = _softmax(logits)
-        idx = int(np.argmax(probs))
-        predictions.append(
-            {
-                "prediction": idx,
-                "class_name": CLASS_NAMES[idx],
-                "probabilities": {cls: float(p) for cls, p in zip(CLASS_NAMES, probs)},
-            }
-        )
+            predictions = []
+            for instance in instances:
+                image = _decode_instance(instance)
+                x = preprocess(image)
+                logits = session.run(["logits"], {"image": x})[0][0]  # (10,)
+                probs = _softmax(logits)
+                idx = int(np.argmax(probs))
+                predictions.append(
+                    {
+                        "prediction": idx,
+                        "class_name": CLASS_NAMES[idx],
+                        "probabilities": {cls: float(p) for cls, p in zip(CLASS_NAMES, probs)},
+                    }
+                )
 
-    return {"predictions": predictions}
+            return {"predictions": predictions}
+
+        except HTTPException:
+            prediction_errors.inc()
+            raise
+        except Exception as e:
+            prediction_errors.inc()
+            raise HTTPException(status_code=500, detail=str(e)) from e

@@ -5,3 +5,4 @@ pillow==12.2.0
 onnxruntime>=1.18
 google-cloud-storage>=2.18.0
 python-multipart==0.0.29
+prometheus-client>=0.20
