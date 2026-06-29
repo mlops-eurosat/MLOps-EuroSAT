@@ -1,5 +1,6 @@
 import base64
 import io
+import json
 import os
 import tempfile
 from contextlib import asynccontextmanager
@@ -30,15 +31,26 @@ CLASS_NAMES = [
 ]
 
 
-def preprocess(image: Image.Image) -> np.ndarray:
+# Fallback for models exported before norm stats were embedded in metadata.
+DEFAULT_MEAN = np.array([0.3439, 0.3799, 0.4074], dtype=np.float32)
+DEFAULT_STD = np.array([0.2026, 0.1369, 0.1155], dtype=np.float32)
+
+
+def preprocess(image: Image.Image, mean: np.ndarray = DEFAULT_MEAN, std: np.ndarray = DEFAULT_STD) -> np.ndarray:
     """Resize and normalise an image into a (1, 3, 64, 64) float32 array."""
     image = image.resize((64, 64))
     arr = np.asarray(image, dtype=np.float32) / 255.0
     arr = arr.transpose(2, 0, 1)  # HWC -> CHW
-    mean = np.array([0.3439, 0.3799, 0.4074], dtype=np.float32)
-    std = np.array([0.2026, 0.1369, 0.1155], dtype=np.float32)
     arr = (arr - mean[:, None, None]) / std[:, None, None]
     return arr[None]  # add batch dim -> (1, 3, 64, 64)
+
+
+def _norm_from_session(session: ort.InferenceSession) -> tuple[np.ndarray, np.ndarray]:
+    """Read normalisation mean/std from the model metadata, falling back to defaults."""
+    meta = session.get_modelmeta().custom_metadata_map
+    mean = np.array(json.loads(meta["norm_mean"]), dtype=np.float32) if "norm_mean" in meta else DEFAULT_MEAN
+    std = np.array(json.loads(meta["norm_std"]), dtype=np.float32) if "norm_std" in meta else DEFAULT_STD
+    return mean, std
 
 
 def _softmax(x: np.ndarray) -> np.ndarray:
@@ -69,10 +81,12 @@ async def lifespan(app: FastAPI):
         print(f"Loading EuroSAT ONNX model from {STORAGE_URI}")
         app.state.tmpdir = tempfile.TemporaryDirectory()
         app.state.session = _load_session_from_gcs(STORAGE_URI, app.state.tmpdir.name)
+        app.state.mean, app.state.std = _norm_from_session(app.state.session)
         print("Model loaded successfully.")
     except Exception as e:
         print(f"WARNING: could not load model: {e}. /predict will return 503 until the model is available.")
         app.state.session = None
+        app.state.mean, app.state.std = DEFAULT_MEAN, DEFAULT_STD
     yield
     print("Cleaning up")
     if hasattr(app.state, "tmpdir"):
@@ -122,7 +136,7 @@ async def predict(request: Request):
     predictions = []
     for instance in instances:
         image = _decode_instance(instance)
-        x = preprocess(image)
+        x = preprocess(image, request.app.state.mean, request.app.state.std)
         logits = session.run(["logits"], {"image": x})[0][0]  # (10,)
         probs = _softmax(logits)
         idx = int(np.argmax(probs))
