@@ -161,9 +161,7 @@ class _LiveCenterRect(MacroElement):
 @st.cache_resource
 def _base_map() -> folium.Map:
     """Cached once per session — same object → same HTML → iframe is never recreated on rerun."""
-    m = folium.Map(
-        location=[DEFAULT_LAT, DEFAULT_LNG], zoom_start=ZOOM, zoom_control=False, scrollWheelZoom=False
-    )
+    m = folium.Map(location=[DEFAULT_LAT, DEFAULT_LNG], zoom_start=ZOOM, zoom_control=False, scrollWheelZoom=False)
     _LiveCenterRect().add_to(m)
     return m
 
