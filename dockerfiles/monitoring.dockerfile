@@ -13,6 +13,10 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 COPY requirements_monitoring.txt requirements_monitoring.txt
 RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements_monitoring.txt
 
+# Bake the CLIP weights into the image so there is no model download on cold start.
+# Placed before the source COPY so it only re-runs when dependencies change.
+RUN python -c "from transformers import CLIPModel, CLIPProcessor; CLIPModel.from_pretrained('openai/clip-vit-base-patch32'); CLIPProcessor.from_pretrained('openai/clip-vit-base-patch32')"
+
 # Package metadata and source last: changes here only re-run the cheap install below.
 # requirements.txt is the dynamic-dependency source pyproject.toml points at.
 COPY pyproject.toml pyproject.toml
