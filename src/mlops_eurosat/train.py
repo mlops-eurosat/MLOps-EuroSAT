@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from datetime import datetime
@@ -50,7 +51,7 @@ def _make_loader(path: str, batch_size: int, shuffle: bool, num_workers: int) ->
     )
 
 
-def _export_onnx(best_path: str) -> str:
+def _export_onnx(best_path: str, mean: list[float], std: list[float]) -> str:
     """Load the best checkpoint and export it to ONNX. Returns the ONNX file path."""
     checkpoint = torch.load(best_path, map_location="cpu", weights_only=False)
     model = Model()
@@ -69,13 +70,20 @@ def _export_onnx(best_path: str) -> str:
         dynamic_axes={"image": {0: "batch"}},
         dynamo=False,
     )
-    # Ensure weights are inlined so serving only needs the single .onnx file.
-    onnx.save_model(onnx.load(onnx_path), onnx_path, save_as_external_data=False)
+    # Embed normalisation stats and inline weights so serving only needs the single .onnx file.
+    model_proto = onnx.load(onnx_path)
+    for key, value in (("norm_mean", mean), ("norm_std", std)):
+        entry = model_proto.metadata_props.add()
+        entry.key = key
+        entry.value = json.dumps(value)
+    onnx.save_model(model_proto, onnx_path, save_as_external_data=False)
     log.info(f"Exported ONNX model to {onnx_path}")
     return onnx_path
 
 
-def _upload_and_register(best_path: str, val_acc: float | None, run_id: str) -> None:
+def _upload_and_register(
+    best_path: str, val_acc: float | None, run_id: str, mean: list[float], std: list[float]
+) -> None:
     """Export to ONNX, upload to GCS, and register in the Vertex Model Registry."""
     if not best_path:
         log.warning("No best_model_path available; skipping model registration.")
@@ -84,7 +92,7 @@ def _upload_and_register(best_path: str, val_acc: float | None, run_id: str) -> 
         log.warning("No numeric val_acc available; skipping model registration.")
         return
 
-    onnx_path = _export_onnx(best_path)
+    onnx_path = _export_onnx(best_path, mean, std)
 
     artifact_dir = f"checkpoints/{run_id}"
     bucket = storage.Client().bucket(MODEL_BUCKET)
@@ -165,8 +173,11 @@ def train(cfg: DictConfig) -> None:
     trainer.test(model, test_loader, ckpt_path="best")
 
     if cfg.training.register_model:
+        norm_stats = torch.load(data_dir / "train.pt", weights_only=False)
+        mean = norm_stats["mean"].tolist()
+        std = norm_stats["std"].tolist()
         run_id = wandb_logger.version or run_name
-        _upload_and_register(checkpoint_callback.best_model_path, best_val_acc, run_id)
+        _upload_and_register(checkpoint_callback.best_model_path, best_val_acc, run_id, mean, std)
 
 
 if __name__ == "__main__":

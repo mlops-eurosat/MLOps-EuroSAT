@@ -49,7 +49,7 @@ ignore_missing_imports = true
 addopts = "--cov=src/mlops_eurosat --cov-report=term-missing"
 
 [[tool.mypy.overrides]]
-module = ["wandb", "wandb.*", "google.cloud.*", "requests"]
+module = ["wandb", "wandb.*", "google.cloud.*", "requests", "streamlit_folium", "folium", "folium.*"]
 ignore_missing_imports = true
 follow_imports = "skip"
 
