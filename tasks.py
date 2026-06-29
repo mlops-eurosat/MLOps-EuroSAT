@@ -216,6 +216,22 @@ def profile(ctx: Context, steps: int = 50, num_workers: int = -1, torch_profiler
 
 
 @task
+def quantize(ctx: Context, onnx: str = "", checkpoint: str = "", batch_size: int = 1, runs: int = 200) -> None:
+    """Quantize the ONNX model to int8 and benchmark fp32 vs int8 (size/latency/accuracy).
+
+    Exports a fresh model when --onnx is omitted. e.g.
+        invoke quantize
+        invoke quantize --onnx models/model.onnx --batch-size 32
+    """
+    cmd = f"python src/{PROJECT_NAME}/quantize.py --batch-size {batch_size} --runs {runs}"
+    if onnx:
+        cmd += f" --onnx {onnx}"
+    if checkpoint:
+        cmd += f" --checkpoint {checkpoint}"
+    ctx.run(cmd, echo=True, pty=not WINDOWS)
+
+
+@task
 def test(ctx: Context) -> None:
     """Run tests."""
     ctx.run("coverage run -m pytest tests/", echo=True, pty=not WINDOWS)
