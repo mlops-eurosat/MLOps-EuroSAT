@@ -4,7 +4,7 @@ The red rectangle on the map is a live Leaflet overlay — it follows the map
 centre in real-time and always shows the exact 640 m patch that will be sent
 to the model. Classification runs automatically when the map stands still.
 
-Run locally:
+Run locally (set SH_CLIENT_ID and SH_CLIENT_SECRET first):
     streamlit run src/mlops_eurosat/frontend_map.py
 """
 
@@ -15,7 +15,6 @@ import io
 import math
 import os
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import folium
 import requests
@@ -26,67 +25,79 @@ from PIL import Image
 from streamlit_folium import st_folium
 
 API_URL = os.environ.get("API_URL", "https://eurosat-api-999981877996.europe-west3.run.app/predict")
+SH_TOKEN_URL = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
+SH_PROCESS_URL = "https://sh.dataspace.copernicus.eu/api/v1/process"
 
 ZOOM = 15
-TILE_PX = 256
-# Equatorial ground resolution at zoom 15.
-# Actual m/px at latitude φ = M_PER_PX * cos(φ).
-M_PER_PX = 40_075_016.7 / (TILE_PX * 2**ZOOM)
-
-ESRI_TILES = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-ESRI_ATTR = "Tiles &copy; Esri &mdash; Esri, Maxar, Earthstar Geographics"
 DEBOUNCE_S = 1.0
-
 DEFAULT_LAT, DEFAULT_LNG = 48.137, 11.575  # Munich
+_PATCH_M = 640
+
+_SH_EVALSCRIPT = """
+//VERSION=3
+function setup() {
+    return { input: [{ bands: ["B04", "B03", "B02"] }], output: { bands: 3 } };
+}
+function evaluatePixel(s) {
+    return [3.5 * s.B04, 3.5 * s.B03, 3.5 * s.B02];
+}
+"""
 
 
-# ── tile helpers ─────────────────────────────────────────────────────────────
+# ── Sentinel Hub auth ─────────────────────────────────────────────────────────
+
+_sh_token: str | None = None
+_sh_token_expiry: float = 0.0
 
 
-def _tile_coords(lat: float, lng: float) -> tuple[int, int, int, int]:
-    n = 2**ZOOM
-    lat_r = math.radians(lat)
-    fx = (lng + 180) / 360 * n
-    fy = (1 - math.log(math.tan(lat_r) + 1 / math.cos(lat_r)) / math.pi) / 2 * n
-    tx, ty = int(fx), int(fy)
-    px, py = int((fx - tx) * TILE_PX), int((fy - ty) * TILE_PX)
-    return tx, ty, px, py
-
-
-def _fetch_tile(tx: int, ty: int) -> tuple[int, int, Image.Image]:
-    url = f"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{ZOOM}/{ty}/{tx}"
-    r = requests.get(url, timeout=10, headers={"User-Agent": "EuroSAT-Map/1.0"})
+def _sh_access_token() -> str:
+    global _sh_token, _sh_token_expiry
+    if _sh_token and time.time() < _sh_token_expiry - 30:
+        return _sh_token
+    r = requests.post(
+        SH_TOKEN_URL,
+        data={
+            "grant_type": "client_credentials",
+            "client_id": os.environ["SH_CLIENT_ID"],
+            "client_secret": os.environ["SH_CLIENT_SECRET"],
+        },
+        timeout=10,
+    )
     r.raise_for_status()
-    return tx, ty, Image.open(io.BytesIO(r.content)).convert("RGB")
+    data = r.json()
+    _sh_token = data["access_token"]
+    _sh_token_expiry = time.time() + data.get("expires_in", 600)
+    return _sh_token
+
+
+# ── patch fetching ────────────────────────────────────────────────────────────
 
 
 def get_patch(lat: float, lng: float) -> Image.Image:
-    """Return a 64×64 satellite patch (640 m) centred at (lat, lng).
+    """Return a 64×64 Sentinel-2 RGB patch (640 m) centred at (lat, lng)."""
+    lat_delta = _PATCH_M / 111_320
+    lng_delta = _PATCH_M / (111_320 * math.cos(math.radians(lat)))
+    bbox = [lng - lng_delta / 2, lat - lat_delta / 2, lng + lng_delta / 2, lat + lat_delta / 2]
 
-    Fetches a 3×3 tile grid in parallel to avoid black borders when the crop
-    centre sits near a tile edge. Crop size is latitude-corrected.
-    """
-    # pixels needed to cover 640 m at this latitude
-    crop_px = round(640 / (M_PER_PX * math.cos(math.radians(lat))))
-    half = crop_px // 2
-
-    tx, ty, px, py = _tile_coords(lat, lng)
-
-    canvas = Image.new("RGB", (TILE_PX * 3, TILE_PX * 3))
-    offsets = [(dx, dy) for dy in range(-1, 2) for dx in range(-1, 2)]
-
-    with ThreadPoolExecutor(max_workers=9) as pool:
-        futures = [pool.submit(_fetch_tile, tx + dx, ty + dy) for dx, dy in offsets]
-        for f in as_completed(futures):
-            try:
-                ftx, fty, tile = f.result()
-                canvas.paste(tile, ((ftx - tx + 1) * TILE_PX, (fty - ty + 1) * TILE_PX))
-            except Exception:
-                pass  # leave black if a tile fails (e.g. ocean, polar regions)
-
-    cx, cy = TILE_PX + px, TILE_PX + py
-    patch = canvas.crop((cx - half, cy - half, cx + half, cy + half))
-    return patch.resize((64, 64), Image.Resampling.LANCZOS)
+    payload = {
+        "input": {
+            "bounds": {
+                "bbox": bbox,
+                "properties": {"crs": "http://www.opengis.net/def/crs/OGC/1.3/CRS84"},
+            },
+            "data": [{"type": "sentinel-2-l2a", "dataFilter": {"maxCloudCoverage": 30}}],
+        },
+        "output": {
+            "width": 64,
+            "height": 64,
+            "responses": [{"identifier": "default", "format": {"type": "image/png"}}],
+        },
+        "evalscript": _SH_EVALSCRIPT,
+    }
+    headers = {"Authorization": f"Bearer {_sh_access_token()}", "Content-Type": "application/json"}
+    r = requests.post(SH_PROCESS_URL, json=payload, headers=headers, timeout=30)
+    r.raise_for_status()
+    return Image.open(io.BytesIO(r.content)).convert("RGB")
 
 
 # ── API ───────────────────────────────────────────────────────────────────────
@@ -116,7 +127,6 @@ class _LiveCenterRect(MacroElement):
             (function () {
                 var map = {{ this._parent.get_name() }};
 
-                // Append directly to the Leaflet container div, not to any pane.
                 var el = document.createElement('div');
                 el.style.cssText = [
                     'position:absolute',
@@ -152,9 +162,8 @@ class _LiveCenterRect(MacroElement):
 def _base_map() -> folium.Map:
     """Cached once per session — same object → same HTML → iframe is never recreated on rerun."""
     m = folium.Map(
-        location=[DEFAULT_LAT, DEFAULT_LNG], zoom_start=ZOOM, tiles=None, zoom_control=False, scrollWheelZoom=False
+        location=[DEFAULT_LAT, DEFAULT_LNG], zoom_start=ZOOM, zoom_control=False, scrollWheelZoom=False
     )
-    folium.TileLayer(tiles=ESRI_TILES, attr=ESRI_ATTR, name="Satellite").add_to(m)
     _LiveCenterRect().add_to(m)
     return m
 
@@ -176,7 +185,7 @@ st.markdown(
 )
 st.title("EuroSAT Live Land Use Classification")
 st.caption(
-    "Pan the satellite map — the **red rectangle** follows the map centre and shows "
+    "Pan the map — the **red rectangle** follows the map centre and shows "
     "exactly the 640 m patch the model will classify. Results update automatically."
 )
 
@@ -225,7 +234,7 @@ with col_result:
         st.metric("Confidence", f"{top_prob * 100:.1f}%")
 
         if st.session_state.patch:
-            st.image(st.session_state.patch, caption="64×64 patch sent to model (~640 m)", width=192)
+            st.image(st.session_state.patch, caption="64×64 Sentinel-2 patch sent to model (~640 m)", width=192)
 
         st.divider()
         st.subheader("Class probabilities")
