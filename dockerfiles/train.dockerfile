@@ -12,9 +12,11 @@ COPY pyproject.toml pyproject.toml
 # build backend needs it present even though we only install the slim train set at runtime.
 COPY requirements.txt requirements.txt
 
-# Install the CPU-only build of torch first
+# Install the CPU-only build of torch first. Must match the torch pin in
+# requirements_train.txt, otherwise the install below upgrades it to the default
+# CUDA build from PyPI and the CPU-only optimization is silently lost.
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install torch==2.12.0 --index-url https://download.pytorch.org/whl/cpu
+    pip install torch==2.12.1 --index-url https://download.pytorch.org/whl/cpu
 RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements_train.txt
 RUN --mount=type=cache,target=/root/.cache/pip pip install dvc[gs] google-cloud-storage
 
