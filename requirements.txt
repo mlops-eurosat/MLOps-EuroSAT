@@ -17,6 +17,8 @@ google-cloud-secret-manager>=2.20.0
 requests==2.34.2
 pandas==3.0.3
 streamlit==1.57.0
+folium==0.19.6
+streamlit-folium==0.25.0
 onnx>=1.16
 onnxruntime>=1.18
 google-cloud-run>=0.10
