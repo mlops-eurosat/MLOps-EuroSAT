@@ -152,8 +152,8 @@ def deploy_to_cloud_run(version_alias: str = PRODUCTION_ALIAS) -> str:
     container = service.template.containers[0]
 
     # Replace AIP_STORAGE_URI, keep all other env vars intact
-    container.env_vars = [e for e in container.env_vars if e.name != "AIP_STORAGE_URI"]
-    container.env_vars.append(run_v2.EnvVar(name="AIP_STORAGE_URI", value=model.uri))
+    container.env = [e for e in container.env if e.name != "AIP_STORAGE_URI"]
+    container.env.append(run_v2.EnvVar(name="AIP_STORAGE_URI", value=model.uri))
 
     result = client.update_service(service=service).result()
     print(f"[registry] {CLOUD_RUN_SERVICE} now serves model {model.version_id} ({model.uri}) -> {result.uri}")
