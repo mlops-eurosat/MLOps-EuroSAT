@@ -1,7 +1,7 @@
-fastapi==0.138.1
+fastapi==0.138.2
 uvicorn==0.49.0
 numpy==2.5.0
 pillow==12.2.0
 onnxruntime>=1.27.0
 google-cloud-storage>=3.12.0
-prometheus-client>=0.20
+prometheus-client>=0.25.0
