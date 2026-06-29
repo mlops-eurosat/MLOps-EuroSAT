@@ -92,6 +92,18 @@ steps:
       - '--region=europe-west3'
       - '--allow-unauthenticated'
       - '--port=8080'
+  - id: deploy-frontend
+    name: 'gcr.io/cloud-builders/gcloud'
+    waitFor: ['build-frontend']
+    args:
+      - 'run'
+      - 'deploy'
+      - 'eurosat-frontend'
+      - '--image=europe-west3-docker.pkg.dev/mlops-eurosat-496913/mlops-eurosat/frontend:latest'
+      - '--region=europe-west3'
+      - '--allow-unauthenticated'
+      - '--port=8080'
+      - '--set-secrets=SH_CLIENT_ID=sh-client-id:latest,SH_CLIENT_SECRET=sh-client-secret:latest'
   - id: deploy-monitoring
     name: 'gcr.io/cloud-builders/gcloud'
     waitFor: ['push-monitoring']
