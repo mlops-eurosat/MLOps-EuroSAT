@@ -171,3 +171,4 @@ async def predict(request: Request):
         except Exception as e:
             prediction_errors.inc()
             raise HTTPException(status_code=500, detail=str(e)) from e
+
