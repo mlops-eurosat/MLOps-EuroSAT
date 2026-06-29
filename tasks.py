@@ -201,6 +201,21 @@ def pipeline_run(
 
 
 @task
+def profile(ctx: Context, steps: int = 50, num_workers: int = -1, torch_profiler: bool = True) -> None:
+    """Profile the training pipeline (prints results to the terminal).
+
+    --num-workers overrides the configured DataLoader workers, --no-torch-profiler
+    skips the torch.profiler pass. e.g. invoke profile --steps 100 --num-workers 0
+    """
+    cmd = f"python src/{PROJECT_NAME}/profiling.py +profiling.steps={steps}"
+    if num_workers >= 0:
+        cmd += f" training.num_workers={num_workers}"
+    if not torch_profiler:
+        cmd += " +profiling.torch=false"
+    ctx.run(cmd, echo=True, pty=not WINDOWS)
+
+
+@task
 def test(ctx: Context) -> None:
     """Run tests."""
     ctx.run("coverage run -m pytest tests/", echo=True, pty=not WINDOWS)
