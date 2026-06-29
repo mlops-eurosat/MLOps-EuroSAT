@@ -3,10 +3,11 @@ import io
 import os
 import tempfile
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 
 import numpy as np
 import onnxruntime as ort
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from google.cloud import storage  # type: ignore[attr-defined]
 from PIL import Image
 from prometheus_client import Counter, Histogram, Summary, make_asgi_app
@@ -14,6 +15,7 @@ from prometheus_client import Counter, Histogram, Summary, make_asgi_app
 HEALTH_ROUTE = os.environ.get("AIP_HEALTH_ROUTE", "/health")
 PREDICT_ROUTE = os.environ.get("AIP_PREDICT_ROUTE", "/predict")
 STORAGE_URI = os.environ.get("AIP_STORAGE_URI", "gs://eurosat_models/checkpoints")
+MONITORING_BUCKET = os.environ.get("MONITORING_BUCKET", "eurosat_monitoring")
 
 CLASS_NAMES = [
     "AnnualCrop",
@@ -45,28 +47,37 @@ def _softmax(x: np.ndarray) -> np.ndarray:
     return e / e.sum()
 
 
-def _load_session_from_gcs(storage_uri: str) -> ort.InferenceSession:
-    """Download model.onnx from a gs:// directory and return an inference session."""
+def _load_session_from_gcs(storage_uri: str, tmpdir: str) -> ort.InferenceSession:
+    """Download model files from a gs:// directory into tmpdir and return an inference session."""
     assert storage_uri.startswith("gs://"), f"Expected a gs:// URI, got {storage_uri}"
     bucket_name, _, prefix = storage_uri[len("gs://") :].partition("/")
-    blob_path = f"{prefix.rstrip('/')}/model.onnx" if prefix else "model.onnx"
+    prefix = prefix.rstrip("/")
 
-    blob = storage.Client().bucket(bucket_name).blob(blob_path)
-    with tempfile.NamedTemporaryFile(suffix=".onnx") as f:
-        blob.download_to_filename(f.name)
-        return ort.InferenceSession(f.name)
+    bucket = storage.Client().bucket(bucket_name)
+    for filename in ("model.onnx", "model.onnx.data"):
+        blob_path = f"{prefix}/{filename}" if prefix else filename
+        blob = bucket.blob(blob_path)
+        if blob.exists():
+            blob.download_to_filename(f"{tmpdir}/{filename}")
+            print(f"Downloaded {filename}")
+
+    return ort.InferenceSession(f"{tmpdir}/model.onnx")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
         print(f"Loading EuroSAT ONNX model from {STORAGE_URI}")
-        app.state.session = _load_session_from_gcs(STORAGE_URI)
+        app.state.tmpdir = tempfile.TemporaryDirectory()
+        app.state.session = _load_session_from_gcs(STORAGE_URI, app.state.tmpdir.name)
         print("Model loaded successfully.")
     except Exception as e:
         print(f"WARNING: could not load model: {e}. /predict will return 503 until the model is available.")
         app.state.session = None
     yield
+    print("Cleaning up")
+    if hasattr(app.state, "tmpdir"):
+        app.state.tmpdir.cleanup()
     del app.state.session
 
 
@@ -77,6 +88,20 @@ prediction_requests = Counter("prediction_requests_total", "Total number of pred
 prediction_errors = Counter("prediction_errors_total", "Total number of prediction errors")
 prediction_latency = Histogram("prediction_latency_seconds", "Prediction latency in seconds")
 instances_per_request = Summary("prediction_instances_per_request", "Number of instances per request")
+
+
+def _log_image(image: Image.Image, class_name: str) -> None:
+    """Save raw image to GCS for offline drift analysis (background task)."""
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
+    buf = io.BytesIO()
+    image.save(buf, format="PNG")
+    blob_name = f"predictions/{timestamp}_{class_name}.png"
+    try:
+        storage.Client().bucket(MONITORING_BUCKET).blob(blob_name).upload_from_string(
+            buf.getvalue(), content_type="image/png"
+        )
+    except Exception as e:
+        print(f"[monitoring] failed to log image: {e}")
 
 
 def _decode_instance(instance: dict | str) -> Image.Image:
@@ -95,8 +120,6 @@ async def health():
 
 @app.post(PREDICT_ROUTE)
 async def predict(request: Request):
-    from fastapi import HTTPException
-
     prediction_requests.inc()
     with prediction_latency.time():
         try:
@@ -114,10 +137,14 @@ async def predict(request: Request):
                 logits = session.run(["logits"], {"image": x})[0][0]  # (10,)
                 probs = _softmax(logits)
                 idx = int(np.argmax(probs))
+                class_name = CLASS_NAMES[idx]
+
+                _log_image(image, class_name)
+
                 predictions.append(
                     {
                         "prediction": idx,
-                        "class_name": CLASS_NAMES[idx],
+                        "class_name": class_name,
                         "probabilities": {cls: float(p) for cls, p in zip(CLASS_NAMES, probs)},
                     }
                 )
