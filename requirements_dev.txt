@@ -25,4 +25,4 @@ types-PyYAML>=6.0.12.20260518
 pandas-stubs>=3.0.3.260530
 types-requests>=2.33.0.20260518
 onnxruntime==1.27.0
-prometheus-client>=0.20
+prometheus-client>=0.25.0
