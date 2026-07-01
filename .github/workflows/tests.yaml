@@ -9,9 +9,10 @@ jobs:
   test:
     runs-on: ${{ matrix.operating-system }}
     strategy:
+      fail-fast: false
       matrix:
-        operating-system: ["ubuntu-latest"]
-        python-version: ["3.12"]
+        operating-system: ["ubuntu-latest", "windows-latest", "macos-latest"]
+        python-version: ["3.12", "3.13"]
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -21,21 +22,16 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Cache virtualenv
-        uses: actions/cache@v6
-        id: cache-venv
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
         with:
-          path: .venv
-          key: venv-${{ matrix.operating-system }}-${{ matrix.python-version }}-${{ hashFiles('requirements*.txt', 'pyproject.toml') }}
+          enable-cache: true
+          cache-dependency-glob: |
+            requirements*.txt
+            pyproject.toml
 
       - name: Install dependencies
-        if: steps.cache-venv.outputs.cache-hit != 'true'
-        run: |
-          python -m venv .venv
-          .venv/bin/pip install -U pip setuptools wheel
-          .venv/bin/pip install -r requirements.txt
-          .venv/bin/pip install -r requirements_dev.txt
-          .venv/bin/pip install -e .
+        run: uv pip install --system -r requirements.txt -r requirements_dev.txt -e .
 
       - name: Run tests & coverage
-        run: .venv/bin/pytest tests/
+        run: pytest tests/
