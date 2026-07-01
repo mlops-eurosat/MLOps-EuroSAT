@@ -85,7 +85,7 @@ def get_patch(lat: float, lng: float) -> Image.Image:
                 "bbox": bbox,
                 "properties": {"crs": "http://www.opengis.net/def/crs/OGC/1.3/CRS84"},
             },
-            "data": [{"type": "sentinel-2-l2a", "dataFilter": {"maxCloudCoverage": 30}}],
+            "data": [{"type": "sentinel-2-l1c", "dataFilter": {"maxCloudCoverage": 30}}],
         },
         "output": {
             "width": 64,
