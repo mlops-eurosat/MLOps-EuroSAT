@@ -84,7 +84,9 @@ def _load_reference_images(train_pt: Path) -> tuple[list[Image.Image], list[int]
     return pil_images, targets
 
 
-def _download_prediction_images(bucket_name: str, prefix: str = "predictions/", n: int | None = None) -> tuple[list[Image.Image], list[int]]:
+def _download_prediction_images(
+    bucket_name: str, prefix: str = "predictions/", n: int | None = None
+) -> tuple[list[Image.Image], list[int]]:
     """Download logged prediction PNGs from GCS, return images and predicted class indices."""
     print(f"Downloading prediction images from gs://{bucket_name}/{prefix}...")
     client = storage.Client()
