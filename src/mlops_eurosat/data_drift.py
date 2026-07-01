@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 import torch
 import typer
-from evidently.legacy.metric_preset import DataDriftPreset, TargetDriftPreset
+from evidently.legacy.metric_preset import DataDriftPreset
 from evidently.legacy.report import Report
 from google.cloud import storage
 from PIL import Image
@@ -84,13 +84,15 @@ def _load_reference_images(train_pt: Path) -> tuple[list[Image.Image], list[int]
     return pil_images, targets
 
 
-def _download_prediction_images(bucket_name: str, prefix: str = "predictions/") -> tuple[list[Image.Image], list[int]]:
+def _download_prediction_images(bucket_name: str, prefix: str = "predictions/", n: int | None = None) -> tuple[list[Image.Image], list[int]]:
     """Download logged prediction PNGs from GCS, return images and predicted class indices."""
     print(f"Downloading prediction images from gs://{bucket_name}/{prefix}...")
     client = storage.Client()
     bucket = client.bucket(bucket_name)
     blobs = list(bucket.list_blobs(prefix=prefix))
-    png_blobs = [b for b in blobs if b.name.endswith(".png")]
+    png_blobs = sorted([b for b in blobs if b.name.endswith(".png")], key=lambda b: b.name)
+    if n is not None:
+        png_blobs = png_blobs[-n:]
 
     if not png_blobs:
         raise RuntimeError(f"No prediction images found in gs://{bucket_name}/{prefix}")
@@ -130,13 +132,14 @@ def data_drift(
     bucket: str = os.environ.get("MONITORING_BUCKET", "eurosat_monitoring"),
     train_pt: Path = Path("data/processed/train.pt"),
     n_components: int = 20,
+    n_predictions: int | None = None,
     output: Path = Path("reports/drift_report.html"),
 ) -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model, processor = _load_clip(device)
 
     ref_images, ref_targets = _load_reference_images(train_pt)
-    cur_images, cur_targets = _download_prediction_images(bucket)
+    cur_images, cur_targets = _download_prediction_images(bucket, n=n_predictions)
 
     print("Extracting CLIP embeddings for reference data...")
     ref_embeddings = _embed_pil_images(ref_images, model, processor, device)
@@ -156,7 +159,7 @@ def data_drift(
     cur_df["target"] = cur_targets
 
     print("Running Evidently drift report...")
-    report = Report(metrics=[DataDriftPreset(), TargetDriftPreset()])
+    report = Report(metrics=[DataDriftPreset()])
     report.run(reference_data=ref_df, current_data=cur_df)
 
     output = Path(output)
