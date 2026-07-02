@@ -170,14 +170,14 @@ def train(cfg: DictConfig) -> None:
     best_val_acc_score = val_acc_tracker.best_model_score
     best_val_acc = float(best_val_acc_score) if best_val_acc_score is not None else None
 
-    trainer.test(model, test_loader, ckpt_path="best")
+    trainer.test(model, test_loader, ckpt_path=val_acc_tracker.best_model_path or None)
 
     if cfg.training.register_model:
         norm_stats = torch.load(data_dir / "train.pt", weights_only=False)
         mean = norm_stats["mean"].tolist()
         std = norm_stats["std"].tolist()
         run_id = wandb_logger.version or run_name
-        _upload_and_register(checkpoint_callback.best_model_path, best_val_acc, run_id, mean, std)
+        _upload_and_register(val_acc_tracker.best_model_path, best_val_acc, run_id, mean, std)
 
 
 if __name__ == "__main__":
