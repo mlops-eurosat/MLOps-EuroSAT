@@ -168,8 +168,24 @@ def pipeline_run(
         overrides += f" training.max_epochs={epochs}"
     if limit_batches:
         overrides += f" training.limit_train_batches={limit_batches}"
-    preprocess_cmd = "dvc pull data/raw.dvc -j 16 && dvc repro -f preprocess && dvc push -j 16"
-    train_cmd = f"dvc pull -j 16 && python -u src/mlops_eurosat/train.py{overrides}"
+    # The dvc.lock baked into the image is stale once preprocess reruns, so preprocess hands
+    # the fresh lock to the later steps through GCS; they then pull exactly this run's data.
+    lock_uri = f"{pl.PIPELINE_ROOT}/dvc-locks/{datetime.now():%Y%m%d-%H%M%S}/dvc.lock"
+
+    def _lock_cmd(action: str) -> str:
+        return (
+            'python -c "from google.cloud import storage; '
+            f"storage.Blob.from_uri('{lock_uri}', client=storage.Client()).{action}('dvc.lock')\""
+        )
+
+    preprocess_cmd = (
+        "dvc pull data/raw.dvc -j 16 && dvc repro -f preprocess && dvc push -j 16 && "
+        f"{_lock_cmd('upload_from_filename')}"
+    )
+    train_cmd = (
+        f"{_lock_cmd('download_to_filename')} && dvc pull data/processed -j 16 && "
+        f"python -u src/mlops_eurosat/train.py{overrides}"
+    )
 
     def _worker_pool_specs(cmd: str) -> list:
         return [
@@ -194,6 +210,7 @@ def pipeline_run(
         parameter_values={
             "preprocess_specs": _worker_pool_specs(preprocess_cmd),
             "worker_pool_specs": _worker_pool_specs(train_cmd),
+            "lock_uri": lock_uri,
         },
     )
     job.run(sync=False)

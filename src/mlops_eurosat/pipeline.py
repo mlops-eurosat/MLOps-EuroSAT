@@ -2,7 +2,10 @@
 
 preprocess -> train -> evaluate. train registers the new model as ``staging``.
 
-The preprocess step regenerates the processed data via DVC; train runs after it.
+The preprocess step regenerates the processed data via DVC and uploads the fresh
+dvc.lock to GCS; train and evaluate download that lock before pulling, so they
+read exactly the data this run's preprocess produced (the lock baked into the
+image goes stale as soon as preprocess reruns).
 The evaluate step scores the staging model on the test set and logs metrics.
 The training step runs our existing ``train`` container as a Vertex CustomJob;
 ``train.py`` uploads the best checkpoint to GCS and registers it in the Vertex
@@ -26,6 +29,7 @@ PIPELINE_ROOT = "gs://eurosat_models/pipeline-root"
 
 @dsl.component(base_image=TRAIN_IMAGE)
 def evaluate_model(
+    lock_uri: str,
     metrics: Output[Metrics],
     classification_metrics: Output[ClassificationMetrics],
     plots: Output[HTML],
@@ -44,7 +48,9 @@ def evaluate_model(
     from mlops_eurosat import model_registry as mr
     from mlops_eurosat import visualize
 
-    # Test data + the freshly registered staging model (served as ONNX).
+    # Test data + the freshly registered staging model (served as ONNX). The image's own
+    # dvc.lock is stale, so use the one the preprocess step uploaded for this run.
+    storage.Blob.from_uri(lock_uri, client=storage.Client()).download_to_filename("/app/dvc.lock")
     subprocess.run(["dvc", "pull", "data/processed"], cwd="/app", check=True)
 
     aiplatform.init(project=mr.PROJECT_ID, location=mr.REGION)
@@ -93,7 +99,7 @@ def evaluate_model(
 
 
 @dsl.pipeline(name="eurosat-training-pipeline", pipeline_root=PIPELINE_ROOT)
-def eurosat_pipeline(preprocess_specs: list, worker_pool_specs: list) -> None:
+def eurosat_pipeline(preprocess_specs: list, worker_pool_specs: list, lock_uri: str) -> None:
     from google_cloud_pipeline_components.v1.custom_job import CustomTrainingJobOp
 
     preprocess_task = CustomTrainingJobOp(
@@ -117,7 +123,7 @@ def eurosat_pipeline(preprocess_specs: list, worker_pool_specs: list) -> None:
     train_task.set_display_name("train")
     train_task.after(preprocess_task)
 
-    evaluate_task = evaluate_model()
+    evaluate_task = evaluate_model(lock_uri=lock_uri)
     evaluate_task.set_caching_options(False)
     evaluate_task.set_display_name("evaluate")
     evaluate_task.after(train_task)
