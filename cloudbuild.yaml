@@ -151,7 +151,7 @@ steps:
       - '--memory=4Gi'
       - '--cpu=2'
       - '--timeout=300'
-      - '--set-env-vars=MONITORING_BUCKET=eurosat_monitoring,MIN_SAMPLES=100,MAX_STALENESS_HOURS=48'
+      - '--set-env-vars=MONITORING_BUCKET=eurosat_monitoring,MIN_SAMPLES=500,MAX_STALENESS_HOURS=48'
   - id: deploy-trigger
     name: 'gcr.io/cloud-builders/gcloud'
     waitFor: ['push-trigger']

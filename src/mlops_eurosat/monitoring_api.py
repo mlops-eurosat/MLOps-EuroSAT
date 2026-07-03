@@ -1,7 +1,7 @@
 """Monitoring API — serves an Evidently drift report on demand.
 
 Startup: downloads reference CLIP embeddings from GCS, loads CLIP, fits PCA.
-GET /report?n=100        : always runs full analysis on last n predictions.
+GET /report?n=500       : always runs full analysis on last n predictions.
 GET /check               : gated endpoint for Cloud Scheduler — only runs when
                            MIN_SAMPLES new predictions have arrived or MAX_STALENESS_HOURS
                            have passed since the last full run.
@@ -184,13 +184,13 @@ def health():
 
 
 @app.get("/report", response_class=HTMLResponse)
-def report(n: int = 100):
+def report(n: int = 500):
     """Always runs the full drift analysis on the last n predictions."""
     return HTMLResponse(content=_run_analysis(n))
 
 
 @app.get("/check")
-def check(n: int = 100):
+def check(n: int = 500):
     """Gated endpoint for Cloud Scheduler.
 
     Runs analysis only when MIN_SAMPLES new predictions have arrived
