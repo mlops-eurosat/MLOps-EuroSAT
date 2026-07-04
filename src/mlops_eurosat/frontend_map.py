@@ -17,6 +17,7 @@ import os
 import time
 
 import folium
+import pandas as pd
 import requests
 import streamlit as st
 from folium.elements import MacroElement
@@ -191,57 +192,98 @@ for key, default in [
     ("last_inferred", None),
     ("result", None),
     ("patch", None),
+    ("upload_result", None),
+    ("upload_image", None),
 ]:
     if key not in st.session_state:
         st.session_state[key] = default
 
-col_map, col_result = st.columns([3, 2])
 
-with col_map:
-    map_data = st_folium(_base_map(), use_container_width=True, height=520, returned_objects=["center"])
+def _render_prediction(pred: dict, img: Image.Image | None, location_label: str | None = None) -> None:
+    if location_label:
+        st.metric("Location", location_label)
+    st.metric("Predicted class", pred["class_name"])
+    top_prob = max(pred["probabilities"].values())
+    st.metric("Confidence", f"{top_prob * 100:.1f}%")
+    if img:
+        st.image(img, caption="Image sent to model", width=192)
+    st.divider()
+    st.subheader("Class probabilities")
+    df = (
+        pd.DataFrame(pred["probabilities"].items(), columns=["Class", "Probability"])
+        .sort_values("Probability", ascending=False)
+        .reset_index(drop=True)
+    )
+    st.dataframe(df.style.format({"Probability": "{:.2%}"}), hide_index=True, use_container_width=True)
 
-if map_data and map_data.get("center"):
-    new_center = (map_data["center"]["lat"], map_data["center"]["lng"])
-    if new_center != st.session_state.last_inferred:
-        time.sleep(DEBOUNCE_S)
-        with col_result:
+
+tab_map, tab_upload = st.tabs(["Live Map", "Upload Image"])
+
+with tab_map:
+    col_map, col_result = st.columns([3, 2])
+
+    with col_map:
+        map_data = st_folium(_base_map(), use_container_width=True, height=520, returned_objects=["center"])
+
+    if map_data and map_data.get("center"):
+        new_center = (map_data["center"]["lat"], map_data["center"]["lng"])
+        if new_center != st.session_state.last_inferred:
+            time.sleep(DEBOUNCE_S)
+            with col_result:
+                with st.spinner("Running inference…"):
+                    try:
+                        patch = get_patch(*new_center)
+                        pred = classify(patch)
+                        st.session_state.patch = patch
+                        st.session_state.result = pred
+                        st.session_state.last_inferred = new_center
+                    except Exception as e:
+                        st.session_state.result = {"error": str(e)}
+                        st.session_state.patch = None
+            # No st.rerun() — results render in this same run, map iframe stays alive.
+
+    with col_result:
+        if st.session_state.result is None:
+            st.info("Pan the map to classify a location.")
+        elif "error" in st.session_state.result:
+            st.error(f"Error: {st.session_state.result['error']}")
+        else:
+            lat, lng = st.session_state.last_inferred
+            _render_prediction(
+                st.session_state.result,
+                st.session_state.patch,
+                location_label=f"{lat:.5f}, {lng:.5f}",
+            )
+
+with tab_upload:
+    st.subheader("Classify your own image")
+    st.info(
+        "**Heads up before uploading:**\n\n"
+        "- The model was trained exclusively on **Sentinel-2 multispectral satellite imagery** "
+        "(EuroSAT dataset). Predictions on other image types — aerial photos, RGB camera images, "
+        "screenshots, etc. — may be inaccurate or misleading.\n"
+        "- Images are resized to **64×64 pixels** before inference. Non-square images are "
+        "stretched to fit, which distorts the aspect ratio and may affect accuracy."
+    )
+
+    uploaded = st.file_uploader("Choose an image", type=["png", "jpg", "jpeg", "tif", "tiff"])
+
+    if uploaded is not None:
+        img = Image.open(uploaded).convert("RGB").resize((64, 64), Image.Resampling.LANCZOS)
+        if st.button("Classify", type="primary"):
             with st.spinner("Running inference…"):
                 try:
-                    patch = get_patch(*new_center)
-                    pred = classify(patch)
-                    st.session_state.patch = patch
-                    st.session_state.result = pred
-                    st.session_state.last_inferred = new_center
+                    pred = classify(img)
+                    st.session_state.upload_result = pred
+                    st.session_state.upload_image = img
                 except Exception as e:
-                    st.session_state.result = {"error": str(e)}
-                    st.session_state.patch = None
-        # No st.rerun() — results render in this same run, map iframe stays alive.
+                    st.session_state.upload_result = {"error": str(e)}
+                    st.session_state.upload_image = None
 
-with col_result:
-    if st.session_state.result is None:
-        st.info("Pan the map to classify a location.")
-    elif "error" in st.session_state.result:
-        st.error(f"Error: {st.session_state.result['error']}")
+    if st.session_state.upload_result is None:
+        if uploaded is None:
+            st.info("Upload an image above and click **Classify**.")
+    elif "error" in st.session_state.upload_result:
+        st.error(f"Error: {st.session_state.upload_result['error']}")
     else:
-        pred = st.session_state.result
-        lat, lng = st.session_state.last_inferred
-
-        st.metric("Location", f"{lat:.5f}, {lng:.5f}")
-        st.metric("Predicted class", pred["class_name"])
-        top_prob = max(pred["probabilities"].values())
-        st.metric("Confidence", f"{top_prob * 100:.1f}%")
-
-        if st.session_state.patch:
-            st.image(st.session_state.patch, caption="64×64 Sentinel-2 patch sent to model (~640 m)", width=192)
-
-        st.divider()
-        st.subheader("Class probabilities")
-
-        import pandas as pd
-
-        df = (
-            pd.DataFrame(pred["probabilities"].items(), columns=["Class", "Probability"])
-            .sort_values("Probability", ascending=False)
-            .reset_index(drop=True)
-        )
-        st.dataframe(df.style.format({"Probability": "{:.2%}"}), hide_index=True, use_container_width=True)
+        _render_prediction(st.session_state.upload_result, st.session_state.upload_image)
