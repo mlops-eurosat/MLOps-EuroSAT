@@ -54,12 +54,16 @@ def _sh_access_token() -> str:
     global _sh_token, _sh_token_expiry
     if _sh_token and time.time() < _sh_token_expiry - 30:
         return _sh_token
+    client_id = os.environ.get("SH_CLIENT_ID")
+    client_secret = os.environ.get("SH_CLIENT_SECRET")
+    if not client_id or not client_secret:
+        raise RuntimeError("SH_CLIENT_ID and SH_CLIENT_SECRET are not set (Copernicus Data Space OAuth client)")
     r = requests.post(
         SH_TOKEN_URL,
         data={
             "grant_type": "client_credentials",
-            "client_id": os.environ["SH_CLIENT_ID"],
-            "client_secret": os.environ["SH_CLIENT_SECRET"],
+            "client_id": client_id,
+            "client_secret": client_secret,
         },
         timeout=10,
     )

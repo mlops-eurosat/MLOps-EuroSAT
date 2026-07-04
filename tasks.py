@@ -38,14 +38,25 @@ def dev_requirements(ctx: Context) -> None:
 # Project commands
 @task
 def preprocess_data(ctx: Context) -> None:
-    """Preprocess data."""
-    ctx.run(f"python src/{PROJECT_NAME}/data.py data/raw/EuroSAT_RGB data/processed", echo=True, pty=not WINDOWS)
+    """Regenerate the processed data through DVC and push it to the remote.
+
+    Runs the preprocess stage so dvc.lock stays in sync with the data;
+    commit the lock change afterwards.
+    """
+    ctx.run("dvc repro preprocess", echo=True, pty=not WINDOWS)
+    ctx.run("dvc push", echo=True, pty=not WINDOWS)
 
 
 @task
 def train(ctx: Context) -> None:
     """Train model."""
     ctx.run(f"python src/{PROJECT_NAME}/train.py", echo=True, pty=not WINDOWS)
+
+
+@task
+def evaluate(ctx: Context, checkpoint: str) -> None:
+    """Evaluate a trained checkpoint on the test set."""
+    ctx.run(f"python src/{PROJECT_NAME}/evaluate.py {checkpoint}", echo=True, pty=not WINDOWS)
 
 
 @task
@@ -218,6 +229,35 @@ def pipeline_run(
 
 
 @task
+def registry_status(ctx: Context) -> None:
+    """Show the staging and production versions in the model registry."""
+    from mlops_eurosat import model_registry as mr
+
+    for alias in (mr.STAGING_ALIAS, mr.PRODUCTION_ALIAS):
+        try:
+            model = mr._versioned_model(alias)
+        except Exception:
+            print(f"{alias:<11} -")
+            continue
+        acc = mr._decode_metric(model.labels.get(mr.METRIC_LABEL))
+        acc_str = f"val_acc={acc:.4f}" if acc is not None else "no metric"
+        print(f"{alias:<11} version {model.version_id} ({acc_str})")
+
+
+@task
+def promote(ctx: Context, max_latency_s: float = 5.0) -> None:
+    """Run the gate -> promote -> deploy chain by hand.
+
+    Same logic the registry trigger runs; useful when the Eventarc event
+    did not arrive or a promotion should be retried.
+    """
+    from mlops_eurosat import model_registry
+
+    status = model_registry.gate_promote_deploy(max_latency_s=max_latency_s)
+    print(f"Result: {status}")
+
+
+@task
 def profile(ctx: Context, steps: int = 50, num_workers: int = -1, torch_profiler: bool = True) -> None:
     """Profile the training pipeline (prints results to the terminal).
 
@@ -249,23 +289,105 @@ def quantize(ctx: Context, onnx: str = "", checkpoint: str = "", batch_size: int
 
 
 @task
+def eval_report(ctx: Context, model: str = "", dummy: bool = False) -> None:
+    """Render the evaluation report for the staging model to a local HTML file.
+
+    --model uses a local ONNX file instead of downloading from the registry,
+    --dummy fills the report with random data for a quick styling check.
+    """
+    cmd = f"python src/{PROJECT_NAME}/visualize.py"
+    if model:
+        cmd += f" --model {model}"
+    if dummy:
+        cmd += " --dummy"
+    ctx.run(cmd, echo=True, pty=not WINDOWS)
+
+
+@task
+def dataset_statistics(ctx: Context) -> None:
+    """Print dataset statistics and save distribution figures to reports/figures/."""
+    ctx.run(f"python -m {PROJECT_NAME}.dataset_statistics", echo=True, pty=not WINDOWS)
+
+
+@task
+def drift_reference(ctx: Context, train_pt: str = "data/processed/train.pt") -> None:
+    """Recompute the CLIP reference embeddings and upload them to the monitoring bucket.
+
+    Rerun after every data change so drift reports compare against the current
+    training distribution.
+    """
+    from mlops_eurosat.data_drift import save_reference_embeddings
+
+    save_reference_embeddings(train_pt=Path(train_pt))
+
+
+@task
+def data_drift(ctx: Context, n_predictions: int = 500, output: str = "reports/drift_report.html") -> None:
+    """Generate the offline drift report from the logged predictions.
+
+    e.g. invoke data-drift --n-predictions 200
+    """
+    cmd = f"python src/{PROJECT_NAME}/data_drift.py --n-predictions {n_predictions} --output {output}"
+    ctx.run(cmd, echo=True, pty=not WINDOWS)
+
+
+@task
 def test(ctx: Context) -> None:
-    """Run tests."""
-    ctx.run("coverage run -m pytest tests/", echo=True, pty=not WINDOWS)
-    ctx.run("coverage report -m -i", echo=True, pty=not WINDOWS)
+    """Run tests (coverage comes from the pytest-cov addopts in pyproject.toml)."""
+    ctx.run("pytest tests/", echo=True, pty=not WINDOWS)
+
+
+@task
+def lint(ctx: Context) -> None:
+    """Run ruff and mypy the same way CI does, fixing what ruff can."""
+    ctx.run("ruff check . --fix", echo=True, pty=not WINDOWS)
+    ctx.run("ruff format .", echo=True, pty=not WINDOWS)
+    ctx.run("mypy .", echo=True, pty=not WINDOWS)
+
+
+@task
+def serve_api(ctx: Context, port: int = 8000) -> None:
+    """Serve the prediction API locally with auto-reload.
+
+    The model is fetched from AIP_STORAGE_URI on startup; without GCP
+    credentials /predict answers 503 but the API still runs.
+    """
+    ctx.run(f"uvicorn {PROJECT_NAME}.api:app --reload --port {port}", echo=True, pty=not WINDOWS)
+
+
+@task
+def frontend(ctx: Context, upload: bool = False) -> None:
+    """Run the Streamlit map frontend; --upload starts the file-upload variant instead.
+
+    The map variant needs Sentinel Hub credentials; if SH_CLIENT_ID or
+    SH_CLIENT_SECRET is not set, it is fetched from Secret Manager (the same
+    secrets the Cloud Run deploy uses).
+    """
+    script = "frontend.py" if upload else "frontend_map.py"
+    env = {}
+    if not upload:
+        for var, secret in (("SH_CLIENT_ID", "sh-client-id"), ("SH_CLIENT_SECRET", "sh-client-secret")):
+            if not os.environ.get(var):
+                fetched = ctx.run(f"gcloud secrets versions access latest --secret={secret}", hide=True)
+                env[var] = fetched.stdout.strip()
+    ctx.run(f"streamlit run src/{PROJECT_NAME}/{script}", echo=True, pty=not WINDOWS, env=env)
 
 
 @task
 def docker_build(ctx: Context, progress: str = "plain") -> None:
-    """Build docker images."""
-    ctx.run(
-        f"docker build -t train:latest . -f dockerfiles/train.dockerfile --progress={progress}",
-        echo=True,
-        pty=not WINDOWS,
-    )
-    ctx.run(
-        f"docker build -t api:latest . -f dockerfiles/api.dockerfile --progress={progress}", echo=True, pty=not WINDOWS
-    )
+    """Build all docker images."""
+    for image in ("train", "api", "frontend", "monitoring", "trigger"):
+        ctx.run(
+            f"docker build -t {image}:latest . -f dockerfiles/{image}.dockerfile --progress={progress}",
+            echo=True,
+            pty=not WINDOWS,
+        )
+
+
+@task
+def cloud_build(ctx: Context) -> None:
+    """Build, push and deploy all images through Cloud Build (same as the merge trigger)."""
+    ctx.run("gcloud builds submit --config cloudbuild.yaml .", echo=True, pty=not WINDOWS)
 
 
 # Documentation commands
