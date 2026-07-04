@@ -35,7 +35,7 @@ def dev_requirements(ctx: Context) -> None:
     ctx.run('pip install -e .["dev"]', echo=True, pty=not WINDOWS)
 
 
-# Project commands
+# Data commands
 @task
 def preprocess_data(ctx: Context) -> None:
     """Regenerate the processed data through DVC and push it to the remote.
@@ -48,6 +48,13 @@ def preprocess_data(ctx: Context) -> None:
 
 
 @task
+def dataset_statistics(ctx: Context) -> None:
+    """Print dataset statistics and save distribution figures to reports/figures/."""
+    ctx.run(f"python -m {PROJECT_NAME}.dataset_statistics", echo=True, pty=not WINDOWS)
+
+
+# Training commands
+@task
 def train(ctx: Context) -> None:
     """Train model."""
     ctx.run(f"python src/{PROJECT_NAME}/train.py", echo=True, pty=not WINDOWS)
@@ -59,6 +66,53 @@ def evaluate(ctx: Context, checkpoint: str) -> None:
     ctx.run(f"python src/{PROJECT_NAME}/evaluate.py {checkpoint}", echo=True, pty=not WINDOWS)
 
 
+@task
+def eval_report(ctx: Context, model: str = "", dummy: bool = False) -> None:
+    """Render the evaluation report for the staging model to a local HTML file.
+
+    --model uses a local ONNX file instead of downloading from the registry,
+    --dummy fills the report with random data for a quick styling check.
+    """
+    cmd = f"python src/{PROJECT_NAME}/visualize.py"
+    if model:
+        cmd += f" --model {model}"
+    if dummy:
+        cmd += " --dummy"
+    ctx.run(cmd, echo=True, pty=not WINDOWS)
+
+
+@task
+def profile(ctx: Context, steps: int = 50, num_workers: int = -1, torch_profiler: bool = True) -> None:
+    """Profile the training pipeline (prints results to the terminal).
+
+    --num-workers overrides the configured DataLoader workers, --no-torch-profiler
+    skips the torch.profiler pass. e.g. invoke profile --steps 100 --num-workers 0
+    """
+    cmd = f"python src/{PROJECT_NAME}/profiling.py +profiling.steps={steps}"
+    if num_workers >= 0:
+        cmd += f" training.num_workers={num_workers}"
+    if not torch_profiler:
+        cmd += " +profiling.torch=false"
+    ctx.run(cmd, echo=True, pty=not WINDOWS)
+
+
+@task
+def quantize(ctx: Context, onnx: str = "", checkpoint: str = "", batch_size: int = 1, runs: int = 200) -> None:
+    """Quantize the ONNX model to int8 and benchmark fp32 vs int8 (size/latency/accuracy).
+
+    Exports a fresh model when --onnx is omitted. e.g.
+        invoke quantize
+        invoke quantize --onnx models/model.onnx --batch-size 32
+    """
+    cmd = f"python src/{PROJECT_NAME}/quantize.py --batch-size {batch_size} --runs {runs}"
+    if onnx:
+        cmd += f" --onnx {onnx}"
+    if checkpoint:
+        cmd += f" --checkpoint {checkpoint}"
+    ctx.run(cmd, echo=True, pty=not WINDOWS)
+
+
+# Cloud training commands
 @task
 def train_cloud(ctx: Context) -> None:
     """Submit a Vertex AI custom training job"""
@@ -147,6 +201,7 @@ def sweep_best(ctx: Context, sweep_id: str) -> None:
     )
 
 
+# Pipeline & registry commands
 @task
 def pipeline_run(
     ctx: Context,
@@ -257,58 +312,7 @@ def promote(ctx: Context, max_latency_s: float = 5.0) -> None:
     print(f"Result: {status}")
 
 
-@task
-def profile(ctx: Context, steps: int = 50, num_workers: int = -1, torch_profiler: bool = True) -> None:
-    """Profile the training pipeline (prints results to the terminal).
-
-    --num-workers overrides the configured DataLoader workers, --no-torch-profiler
-    skips the torch.profiler pass. e.g. invoke profile --steps 100 --num-workers 0
-    """
-    cmd = f"python src/{PROJECT_NAME}/profiling.py +profiling.steps={steps}"
-    if num_workers >= 0:
-        cmd += f" training.num_workers={num_workers}"
-    if not torch_profiler:
-        cmd += " +profiling.torch=false"
-    ctx.run(cmd, echo=True, pty=not WINDOWS)
-
-
-@task
-def quantize(ctx: Context, onnx: str = "", checkpoint: str = "", batch_size: int = 1, runs: int = 200) -> None:
-    """Quantize the ONNX model to int8 and benchmark fp32 vs int8 (size/latency/accuracy).
-
-    Exports a fresh model when --onnx is omitted. e.g.
-        invoke quantize
-        invoke quantize --onnx models/model.onnx --batch-size 32
-    """
-    cmd = f"python src/{PROJECT_NAME}/quantize.py --batch-size {batch_size} --runs {runs}"
-    if onnx:
-        cmd += f" --onnx {onnx}"
-    if checkpoint:
-        cmd += f" --checkpoint {checkpoint}"
-    ctx.run(cmd, echo=True, pty=not WINDOWS)
-
-
-@task
-def eval_report(ctx: Context, model: str = "", dummy: bool = False) -> None:
-    """Render the evaluation report for the staging model to a local HTML file.
-
-    --model uses a local ONNX file instead of downloading from the registry,
-    --dummy fills the report with random data for a quick styling check.
-    """
-    cmd = f"python src/{PROJECT_NAME}/visualize.py"
-    if model:
-        cmd += f" --model {model}"
-    if dummy:
-        cmd += " --dummy"
-    ctx.run(cmd, echo=True, pty=not WINDOWS)
-
-
-@task
-def dataset_statistics(ctx: Context) -> None:
-    """Print dataset statistics and save distribution figures to reports/figures/."""
-    ctx.run(f"python -m {PROJECT_NAME}.dataset_statistics", echo=True, pty=not WINDOWS)
-
-
+# Monitoring commands
 @task
 def drift_reference(ctx: Context, train_pt: str = "data/processed/train.pt") -> None:
     """Recompute the CLIP reference embeddings and upload them to the monitoring bucket.
@@ -331,6 +335,7 @@ def data_drift(ctx: Context, n_predictions: int = 500, output: str = "reports/dr
     ctx.run(cmd, echo=True, pty=not WINDOWS)
 
 
+# Quality commands
 @task
 def test(ctx: Context) -> None:
     """Run tests (coverage comes from the pytest-cov addopts in pyproject.toml)."""
@@ -345,6 +350,7 @@ def lint(ctx: Context) -> None:
     ctx.run("mypy .", echo=True, pty=not WINDOWS)
 
 
+# Serving commands
 @task
 def serve_api(ctx: Context, port: int = 8000) -> None:
     """Serve the prediction API locally with auto-reload.
@@ -373,6 +379,7 @@ def frontend(ctx: Context, upload: bool = False) -> None:
     ctx.run(f"streamlit run src/{PROJECT_NAME}/{script}", echo=True, pty=not WINDOWS, env=env)
 
 
+# Build & deploy commands
 @task
 def docker_build(ctx: Context, progress: str = "plain") -> None:
     """Build all docker images."""
