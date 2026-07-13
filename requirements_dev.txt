@@ -6,23 +6,23 @@ pre-commit==4.6.0
 
 # testing
 pytest==9.1.1
-coverage==7.15.0
+coverage==7.15.1
 pytest-cov==7.1.0
 
 # linting
-ruff==0.15.20
-mypy==2.1.0
+ruff==0.15.21
+mypy==2.2.0
 
 # docs
 mkdocs-material==9.7.6
 mkdocstrings-python==2.0.5
 
 # vertex pipeline
-kfp>=2.16.1
+kfp>=2.17.0
 google-cloud-pipeline-components>=2.22.0
 
 types-PyYAML>=6.0.12.20260518
 pandas-stubs>=3.0.3.260530
-types-requests>=2.33.0.20260518
+types-requests>=2.33.0.20260712
 onnxruntime==1.27.0
 prometheus-client>=0.25.0
