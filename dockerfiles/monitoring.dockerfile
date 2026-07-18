@@ -7,7 +7,7 @@ WORKDIR /app
 # before any COPY so this heavy layer stays cached across builds, and pinned to the
 # same version as requirements_monitoring.txt so pip treats it as already satisfied.
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install torch==2.12.1 --index-url https://download.pytorch.org/whl/cpu
+    pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/cpu
 
 # Remaining dependencies next, so source-only changes skip this install layer.
 COPY requirements_monitoring.txt requirements_monitoring.txt
