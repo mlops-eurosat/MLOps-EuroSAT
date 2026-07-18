@@ -267,7 +267,8 @@ with tab_upload:
         "(EuroSAT dataset). Predictions on other image types — aerial photos, RGB camera images, "
         "screenshots, etc. — may be inaccurate or misleading.\n"
         "- Images are resized to **64×64 pixels** before inference. Non-square images are "
-        "stretched to fit, which distorts the aspect ratio and may affect accuracy."
+        "stretched to fit, which distorts the aspect ratio and may affect accuracy.\n"
+        "- Images you upload are **stored** to monitor prediction quality and detect data drift."
     )
 
     uploaded = st.file_uploader("Choose an image", type=["png", "jpg", "jpeg", "tif", "tiff"])
