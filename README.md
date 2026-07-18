@@ -63,7 +63,37 @@ The directory structure of the project looks like this:
 └── tasks.py                  # Project tasks
 ```
 
+## License
+
+This project is licensed under the MIT License — see [LICENSE](LICENSE).
+
+## Data attribution
+
+This project uses the [EuroSAT dataset](https://github.com/phelber/EuroSAT)
+(Helber et al.), released under the MIT License. EuroSAT contains modified
+Copernicus Sentinel data (2017), used in accordance with the
+[Copernicus Sentinel Data Terms and Conditions](https://sentinel.esa.int/documents/247904/690755/Sentinel_Data_Legal_Notice).
+
+If you use this work, please cite:
+
+> Helber, P., Bischke, B., Dengel, A., & Borth, D. (2019). EuroSAT: A novel
+> dataset and deep learning benchmark for land use and land cover
+> classification. *IEEE Journal of Selected Topics in Applied Earth
+> Observations and Remote Sensing*, 12(7), 2217–2226.
+
 
 Created using [mlops_template](https://github.com/SkafteNicki/mlops_template),
 a [cookiecutter template](https://github.com/cookiecutter/cookiecutter) for getting
-started with Machine Learning Operations (MLOps).
+started with Machine Learning Operations (MLOps), developed for the
+[DTU MLOps course](https://github.com/SkafteNicki/dtu_mlops):
+
+
+```bibtex
+@misc{skafte_mlops,
+    author       = {Nicki Skafte Detlefsen},
+    title        = {Machine Learning Operations},
+    howpublished = {\url{https://github.com/SkafteNicki/dtu_mlops}},
+    year         = {2026}
+}
+```
+
