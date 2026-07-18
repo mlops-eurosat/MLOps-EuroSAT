@@ -1,4 +1,4 @@
-# Exam template for 02476 Machine Learning Operations
+# MLOps Report
 
 This is the report template for the exam. Please only remove the text formatted as with three dashes in front and behind
 like:
@@ -52,78 +52,78 @@ will check the repositories and the code to verify your answers.
 
 ### Week 1
 
-* [ ] Create a git repository (M5)
-* [ ] Make sure that all team members have write access to the GitHub repository (M5)
-* [ ] Create a dedicated environment for you project to keep track of your packages (M2)
-* [ ] Create the initial file structure using cookiecutter with an appropriate template (M6)
-* [ ] Fill out the `data.py` file such that it downloads whatever data you need and preprocesses it (if necessary) (M6)
-* [ ] Add a model to `model.py` and a training procedure to `train.py` and get that running (M6)
-* [ ] Remember to either fill out the `requirements.txt`/`requirements_dev.txt` files or keeping your
+* [x] Create a git repository (M5)
+* [x] Make sure that all team members have write access to the GitHub repository (M5)
+* [x] Create a dedicated environment for you project to keep track of your packages (M2)
+* [x] Create the initial file structure using cookiecutter with an appropriate template (M6)
+* [x] Fill out the `data.py` file such that it downloads whatever data you need and preprocesses it (if necessary) (M6)
+* [x] Add a model to `model.py` and a training procedure to `train.py` and get that running (M6)
+* [x] Remember to either fill out the `requirements.txt`/`requirements_dev.txt` files or keeping your
     `pyproject.toml`/`uv.lock` up-to-date with whatever dependencies that you are using (M2+M6)
-* [ ] Remember to comply with good coding practices (`pep8`) while doing the project (M7)
-* [ ] Do a bit of code typing and remember to document essential parts of your code (M7)
-* [ ] Setup version control for your data or part of your data (M8)
-* [ ] Add command line interfaces and project commands to your code where it makes sense (M9)
-* [ ] Construct one or multiple docker files for your code (M10)
-* [ ] Build the docker files locally and make sure they work as intended (M10)
-* [ ] Write one or multiple configurations files for your experiments (M11)
-* [ ] Used Hydra to load the configurations and manage your hyperparameters (M11)
-* [ ] Use profiling to optimize your code (M12)
+* [x] Remember to comply with good coding practices (`pep8`) while doing the project (M7)
+* [x] Do a bit of code typing and remember to document essential parts of your code (M7)
+* [x] Setup version control for your data or part of your data (M8)
+* [x] Add command line interfaces and project commands to your code where it makes sense (M9)
+* [x] Construct one or multiple docker files for your code (M10)
+* [x] Build the docker files locally and make sure they work as intended (M10)
+* [x] Write one or multiple configurations files for your experiments (M11)
+* [x] Used Hydra to load the configurations and manage your hyperparameters (M11)
+* [x] Use profiling to optimize your code (M12)
 * [ ] Use logging to log important events in your code (M14)
-* [ ] Use Weights & Biases to log training progress and other important metrics/artifacts in your code (M14)
-* [ ] Consider running a hyperparameter optimization sweep (M14)
-* [ ] Use PyTorch-lightning (if applicable) to reduce the amount of boilerplate in your code (M15)
+* [x] Use Weights & Biases to log training progress and other important metrics/artifacts in your code (M14)
+* [x] Consider running a hyperparameter optimization sweep (M14)
+* [x] Use PyTorch-lightning (if applicable) to reduce the amount of boilerplate in your code (M15)
 
 ### Week 2
 
-* [ ] Write unit tests related to the data part of your code (M16)
-* [ ] Write unit tests related to model construction and or model training (M16)
-* [ ] Calculate the code coverage (M16)
-* [ ] Get some continuous integration running on the GitHub repository (M17)
-* [ ] Add caching and multi-os/python/pytorch testing to your continuous integration (M17)
-* [ ] Add a linting step to your continuous integration (M17)
-* [ ] Add pre-commit hooks to your version control setup (M18)
-* [ ] Add a continues workflow that triggers when data changes (M19)
-* [ ] Add a continues workflow that triggers when changes to the model registry is made (M19)
-* [ ] Create a data storage in GCP Bucket for your data and link this with your data version control setup (M21)
-* [ ] Create a trigger workflow for automatically building your docker images (M21)
-* [ ] Get your model training in GCP using either the Engine or Vertex AI (M21)
-* [ ] Create a FastAPI application that can do inference using your model (M22)
-* [ ] Deploy your model in GCP using either Functions or Run as the backend (M23)
-* [ ] Write API tests for your application and setup continues integration for these (M24)
+* [x] Write unit tests related to the data part of your code (M16)
+* [x] Write unit tests related to model construction and or model training (M16)
+* [x] Calculate the code coverage (M16)
+* [x] Get some continuous integration running on the GitHub repository (M17)
+* [x] Add caching and multi-os/python/pytorch testing to your continuous integration (M17)
+* [x] Add a linting step to your continuous integration (M17)
+* [x] Add pre-commit hooks to your version control setup (M18)
+* [x] Add a continues workflow that triggers when data changes (M19)
+* [x] Add a continues workflow that triggers when changes to the model registry is made (M19)
+* [x] Create a data storage in GCP Bucket for your data and link this with your data version control setup (M21)
+* [x] Create a trigger workflow for automatically building your docker images (M21)
+* [x] Get your model training in GCP using either the Engine or Vertex AI (M21)
+* [x] Create a FastAPI application that can do inference using your model (M22)
+* [x] Deploy your model in GCP using either Functions or Run as the backend (M23)
+* [x] Write API tests for your application and setup continues integration for these (M24)
 * [ ] Load test your application (M24)
-* [ ] Create a more specialized ML-deployment API using either ONNX or BentoML, or both (M25)
-* [ ] Create a frontend for your API (M26)
+* [x] Create a more specialized ML-deployment API using either ONNX or BentoML, or both (M25)
+* [x] Create a frontend for your API (M26)
 
 ### Week 3
 
 * [ ] Check how robust your model is towards data drifting (M27)
-* [ ] Setup collection of input-output data from your deployed application (M27)
-* [ ] Deploy to the cloud a drift detection API (M27)
-* [ ] Instrument your API with a couple of system metrics (M28)
+* [x] Setup collection of input-output data from your deployed application (M27)
+* [x] Deploy to the cloud a drift detection API (M27)
+* [x] Instrument your API with a couple of system metrics (M28)
 * [ ] Setup cloud monitoring of your instrumented application (M28)
-* [ ] Create one or more alert systems in GCP to alert you if your app is not behaving correctly (M28)
+* [x] Create one or more alert systems in GCP to alert you if your app is not behaving correctly (M28)
 * [ ] If applicable, optimize the performance of your data loading using distributed data loading (M29)
 * [ ] If applicable, optimize the performance of your training pipeline by using distributed training (M30)
-* [ ] Play around with quantization, compilation and pruning for you trained models to increase inference speed (M31)
+* [x] Play around with quantization, compilation and pruning for you trained models to increase inference speed (M31)
 
 ### Extra
 
 * [ ] Write some documentation for your application (M32)
 * [ ] Publish the documentation to GitHub Pages (M32)
-* [ ] Revisit your initial project description. Did the project turn out as you wanted?
-* [ ] Create an architectural diagram over your MLOps pipeline
-* [ ] Make sure all group members have an understanding about all parts of the project
-* [ ] Uploaded all your code to GitHub
+* [x] Revisit your initial project description. Did the project turn out as you wanted?
+* [x] Create an architectural diagram over your MLOps pipeline
+* [x] Make sure all group members have an understanding about all parts of the project
+* [x] Uploaded all your code to GitHub
 
 ## Group information
 
 ### Question 1
-> **Enter the group number you signed up on <learn.inside.dtu.dk>**
+> **Enter the group number**
 >
 > Answer:
 
---- question 1 fill here ---
+Group F: Cosima Fröhner, Michael Speckbacher, Philip Studener
 
 ### Question 2
 > **Enter the study number for each member in the group**
@@ -134,7 +134,7 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 2 fill here ---
+/
 
 ### Question 3
 > **Did you end up using any open-source frameworks/packages not covered in the course during your project? If so**
@@ -148,7 +148,7 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 3 fill here ---
+We used Folium and streamlit-folium in our project to build the interactive map in the frontend. We used `folium.Map` to draw the map and `st_folium` to embed it in Streamlit and read back the center point, so the user can pan to a location and classify the tile in the square. We used the Copernicus Data Space Sentinel Hub Process API to get the imagery itself. We authenticate with OAuth and send an evalscript to the Process API to pull a cloud-filtered `sentinel-2-l1c` RGB image for the selected coordinates, which lets the app classify current satellite data instead of the static EuroSAT dataset. We also used google-cloud-pipeline-components (kfp) to compile our preprocess, train and evaluate steps into a Vertex AI pipeline, where each step runs as a custom training job.
 
 ## Coding environment
 
@@ -168,7 +168,15 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 4 fill here ---
+We used Conda and pip to manage our dependencies. We each created a Python 3.12 environment with Conda and installed the packages with pip. The runtime dependencies live in `requirements.txt`, and `requirements_dev.txt` adds the dev tools. We split extra requirement files for the training, API, frontend, monitoring and trigger containers to keep the Docker images small. The package is defined in `pyproject.toml` and installed in editable mode.
+
+To get a complete copy of our environment, a new team member clones the repo and runs:
+
+    invoke create-environment
+    conda activate mlops_eurosat
+    invoke dev-requirements
+
+`invoke dev-requirements` installs `requirements.txt`, then the dev tools, then the package with `pip install -e .`. The manual equivalent is `conda create --name mlops_eurosat python=3.12 pip`, followed by `pip install -r requirements.txt -r requirements_dev.txt` and `pip install -e .`.
 
 ### Question 5
 
@@ -184,7 +192,9 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 5 fill here ---
+We initialized the project from the course `mlops_template` cookiecutter and kept its full structure. Unused folders were deleted. We filled out the placeholder modules (`data.py`, `model.py`, `train.py`, `evaluate.py`, `visualize.py`, `api.py`), the test placeholders, and the provided dockerfiles (train, api).
+
+Around the template we added further source modules (drift detection, model registry, monitoring, frontend, pipeline, profiling, quantization), three additional dockerfiles (frontend, monitoring, trigger) with per-service requirements files (requirements_api.txt, requirements_train.txt, …), so each Docker image installs only what it needs. In addition, we added DVC for data versioning, Hydra config groups, and cloud execution files (`cloudbuild.yaml`, Cloud Run spec, Vertex AI configs).
 
 ### Question 6
 
@@ -199,7 +209,9 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 6 fill here ---
+We used Ruff for linting and formatting and mypy for type checking. Ruff enforces for instance import order, naming, maximum line length, and consistent style. Mypy checks our type hints, with missing-stub exceptions only for third-party packages like Evidently and ONNX Runtime. All of this runs in pre-commit and again in GitHub Actions, so unformatted or type-inconsistent code does not reach main. 
+
+These things matter once several people work on the same code. Formatting keeps diffs small and readable. Typing catches mismatched paths, payloads and return values before a cloud job even starts, which helps a lot when one module builds an artifact that another service consumes. Docstrings capture the intent that a function name alone does not. These tools do not replace testing, but they make the code easier to review, maintain, and change without breaking other parts of the project.
 
 ## Version control
 
@@ -218,7 +230,7 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 7 fill here ---
+In total we implemented 30 tests. The largest group is 10 API tests: preprocessing, payload decoding, softmax, the health endpoint, and single and batched predictions against a mocked ONNX session, since the API is what users actually call. Seven model tests check the CNN output shape, the Lightning train, validation and test steps, gradients and the optimizer. Five data tests cover the stratified split and the dataset wrapper, three cover the training data loaders, two cover evaluation, and three cover the registry trigger's health check, ignored events and the promotion call.
 
 ### Question 8
 
@@ -233,7 +245,9 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 8 fill here ---
+Our total coverage is 20% over `src/mlops_eurosat`. It is low because it counts every module, also the ones we did not unit test: the Vertex pipeline, model registry, monitoring, profiling, visualization and the frontend. Those need a real GCP setup or a running UI, so we checked them by hand instead. The parts we did test are covered well. The model and the registry trigger are both at 91% and the API at 79%.
+
+Even at 100% we would not trust the code to be error free. Coverage only tells us a line ran, not that we picked the right inputs or hit the ways it can break. Our API tests use a mocked ONNX session, so they cannot catch an expired service account, a missing file in the bucket, a wrong Cloud Run variable or a change in the Copernicus API. Data drift and numerical edge cases pass tests too. So a high coverage does not guarantee that the code works.
 
 ### Question 9
 
@@ -248,7 +262,7 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 9 fill here ---
+We used branches and pull requests throughout the project. Each change was developed on a dedicated branch instead of directly on main. Every branch was merged into main exclusively through a pull request. The main branch was protected, so direct pushes were not allowed. Opening a pull request automatically triggered our test, lint, formatting, and type-checking workflows. As a result, broken or inconsistent code could not reach main unnoticed. At least one teammate also had to review and approve the pull request before it could be merged. After a pull request was approved and merged, the push to main triggered our Cloud Build pipeline, which built and deployed the updated services automatically.
 
 ### Question 10
 
@@ -263,7 +277,11 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 10 fill here ---
+We used DVC for the raw EuroSAT images and the processed tensors. Git only holds `data/raw.dvc`, `dvc.yaml` and `dvc.lock`, while the real files lie in our remote. The lock file pins the preprocessing command together with the hashes of the 27,001-image input and `data.py`, and the hash of the three processed outputs. Anyone, including a cloud job, runs `dvc pull` to get the exact data and `dvc repro` to rebuild it only when an input actually changed.
+
+It also made the Vertex pipeline handoff explicit: the preprocess step pulls the raw data, reproduces the stage and pushes the processed result, and training pulls it from there.
+
+In practice the raw dataset never changed, so we only ever used one version. DVC mainly helped by keeping the large files out of Git and giving every developer and cloud job the exact same data through `dvc pull`.
 
 ### Question 11
 
@@ -280,7 +298,16 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 11 fill here ---
+Our CI is split into three GitHub Actions workflows.
+The first one runs the unit tests on every push on a pull request to `main`. It uses a matrix of Ubuntu, Windows and macOS with Python 3.12 and 3.13, so six jobs in total. We install with `uv` and cache the dependencies from all requirement files and `pyproject.toml`. Pytest runs our 30 tests and prints coverage automatically through the config in `pyproject.toml`. We did not test different PyTorch versions.
+
+As with the first workflow the second one runs on every push on a pull request to `main`. It does linting on Ubuntu with Python 3.12: `ruff check`, `ruff format --check` and `mypy`. It caches the `.venv` keyed by the dependency files, so it only reinstalls when they change.
+
+The third workflow checks the data and only runs when a `.dvc` file or `dvc.lock` changes. It authenticates to GCP, pulls the data with DVC, computes the dataset statistics and uses CML to post the label distributions and a few sample images straight onto the pull request.
+
+On top of CI, pre-commit runs Ruff, formatting, YAML and large-file checks, mypy and pytest before each commit, so most problems are caught locally before they reach CI.
+
+Example runs can be found here: <https://github.com/mlops-eurosat/MLOps-EuroSAT/actions>
 
 ## Running code and tracking experiments
 
@@ -299,7 +326,7 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 12 fill here ---
+We configured experiments with Hydra. `configs/config.yaml` composes the model, training and W&B configs, so all knobs — seed, batch size, learning rate, epochs, patience and worker count — live in YAML instead of the code. A default run is just `python src/mlops_eurosat/train.py`, and you override anything from the command line, for example `python src/mlops_eurosat/train.py training.lr=0.0005 training.batch_size=128 training.max_epochs=30`. We wrapped the common runs in Invoke tasks for local training, Vertex jobs, the pipeline and W&B sweeps, including a quick smoke run (`invoke pipeline-run --smoke`, 2 epochs on 10% of the batches) to check the chain before a full run.
 
 ### Question 13
 
@@ -314,7 +341,17 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 13 fill here ---
+We ensured reproducibility on four levels: 
+
+Config: every run is fully defined by its Hydra config, and we log the resolved config (including all command-line overrides) to W&B via config=OmegaConf.to_container(cfg, resolve=True). So for every experiment, W&B stores exactly which hyperparameters produced which metrics. 
+
+Seed: pl.seed_everything(cfg.training.seed, workers=True) seeds Python, NumPy, Torch and the dataloader workers from one config value. 
+
+Environment: package versions are pinned in requirements_train.txt and installed into the train.dockerfile image, so local and Vertex AI runs use the same container.
+
+Data: the dataset is versioned with DVC — dvc.lock records hashes of the raw data, the preprocessing code and the processed output and each trained model is uploaded to GCS under its W&B run ID. 
+
+To reproduce a run, we check out the commit, dvc pull the data, and re-run training with the config from the W&B run, which gives the same result since code, data, environment and seed are all fixed.
 
 ### Question 14
 
@@ -331,7 +368,18 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 14 fill here ---
+We track our experiments with Weights & Biases through the PyTorch Lightning WandbLogger. For every run we log six metrics: `train_loss`, `train_acc`, `val_loss`, `val_acc`, `test_loss` and `test_acc`. Each run is named after its hyperparameters, for example `lr0.001_bs64_0615-1723`, so we can tell runs apart at a glance.
+
+![W&B hyperparameter sweep — six metric panels across runs](figures/wandb_sweep.png)
+
+As seen in the first image, we ran a hyperparameter sweep. All runs are overlaid in the same panels, so we can compare how different learning rates and batch sizes behave. The `val_loss` and `val_acc` curves show which configurations generalise best, while the `test_loss` and `test_acc` bars give one final score per run. This overview could be used to pick the best hyperparameters, and the sweep itself optimises `val_acc`.
+
+![W&B single full run — lr0.001_bs64](figures/wandb_run.png)
+
+The second image is a single full run (`lr0.001_bs64`). Here the same six panels are easier to read: `train_loss` and `train_acc` show that the model is actually learning, and `val_loss` and `val_acc` show how well that transfers to unseen data. The gap between the training and validation curves tells us whether we are overfitting.
+
+We track these metrics for concrete reasons. `val_loss` drives three things during training: early stopping (patience 7), the checkpoint callback that saves the best model, and the learning-rate scheduler. `val_acc` is the objective our sweep maximises. `test_loss` and `test_acc` are logged once at the end on the held-out test set, so they are the honest number for the final model, since it never trained or was selected on that data. Tracking train, validation and test side by side lets us separate "is it learning" from "is it generalising".
+
 
 ### Question 15
 
@@ -346,7 +394,10 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 15 fill here ---
+We used GCP Cloud Build to build separate Docker images for training, inference, the Streamlit frontend, drift monitoring and the registry trigger. Splitting them keeps each deployed service smaller than one image with every dependency. Cloud Build builds the five images in parallel with BuildKit and pip caching, pushes them to Artifact Registry and deploys the services to Cloud Run. We wrapped this in a single command, `invoke cloud-build`, which runs `gcloud builds submit --config cloudbuild.yaml .` (the same thing our merge trigger runs automatically).
+
+For local work, `invoke docker-build` builds all images, or you can build one directly, for example `docker build -t eurosat-api -f dockerfiles/api.dockerfile .`. The API image then runs with `docker run --rm -p 8080:8080 -e AIP_STORAGE_URI=gs://... eurosat-api` once GCP credentials are mounted.
+Link to the training Dockerfile: https://github.com/mlops-eurosat/MLOps-EuroSAT/blob/main/dockerfiles/train.dockerfile
 
 ### Question 16
 
@@ -361,7 +412,10 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 16 fill here ---
+We debugged locally with pytest runs and small synthetic inputs, then used GitHub Actions logs for platform and
+dependency failures. Cloud Build and Vertex logs were investigated for problems that did not occur locally. Small smoke pipeline runs with limited epochs and batches were used which made the full preprocess–train–evaluate path cheaper to inspect.
+
+We wrote a small profiling script (`invoke profile`) that runs three passes over the training loop: a CPU vs GPU compute split, a cProfile table of the slowest Python functions, and a torch.profiler operator table. We mainly used it to see whether data loading or compute was the bottleneck and to tune num_workers and batch size. Lightning's built-in profiler (`training.profiler=simple`) is also available per run for a quick per-stage breakdown.
 
 ## Working in the cloud
 
@@ -378,7 +432,7 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 17 fill here ---
+We used Cloud Storage for DVC data, ONNX models, pipeline artifacts and logged predictions; Artifact Registry for our five container images; and Cloud Build for automated builds and Cloud Run deployments. Vertex AI runs custom training jobs and the preprocess–train–evaluate pipeline, and its Model Registry stores model versions with the `staging` and `production` aliases. Cloud Run hosts the API, frontend, monitoring API and registry trigger. Eventarc routes Vertex model-upload audit events to that trigger, and Cloud Scheduler calls the monitoring `/check` endpoint for drift checks. Secret Manager holds the W&B and Sentinel Hub credentials. The API exposes Prometheus metrics (request counts, latency, errors) at `/metrics`, while Cloud Logging and Cloud Monitoring collect the logs and platform-level metrics from Cloud Run and Cloud Build. IAM service accounts tie these services together. 
 
 ### Question 18
 
@@ -393,7 +447,10 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 18 fill here ---
+Vertex AI/Agent Platform provides the compute for our custom
+jobs and pipeline components. Both `vertex_config_cpu.yaml` and the sweep configuration request an `n1-standard-32` machine with one replica and run the training container from Artifact Registry. The job pulls the DVC data, executes the Hydra/Lightning training process and writes its ONNX result to Cloud Storage. 
+
+The workload is CPU-based: the training image installs CPU-only PyTorch, and for our small model distributed training or extra replicas gave little benefit, so we kept a single replica. Cloud Build ran on an `E2_HIGHCPU_8` worker to build the images in parallel. For development and quick checks we also trained locally, which for our case was faster and cheaper than submitting a full Vertex job for every code change.
 
 ### Question 19
 
@@ -402,7 +459,9 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 19 fill here ---
+Our GCP bucket `eurosat-data` holds the DVC-tracked EuroSAT dataset. DVC stores the objects content-addressed while the hashes live in Git.
+
+![GCP bucket — eurosat-data (DVC-tracked dataset)](figures/data.png)
 
 ### Question 20
 
@@ -411,7 +470,11 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 20 fill here ---
+Our Artifact Registry repository holds the five Docker images — `api`, `frontend`, `monitoring`, `train` and `trigger` .
+
+![Artifact Registry — the five service images](figures/docker_images.png)
+
+![Version digests of the train image](figures/train_docker.png)
 
 ### Question 21
 
@@ -420,7 +483,12 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 21 fill here ---
+
+![Cloud Build history](figures/docker_builds.png)
+
+A single build runs the 14 steps in parallel — build → push → deploy for the five images.
+
+![One Cloud Build run: parallel build, push and deploy of the five images](figures/docker_build.png)
 
 ### Question 22
 
@@ -435,7 +503,7 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 22 fill here ---
+Yes, we trained in the cloud using Vertex AI / Agent Platform, with the training image built by Cloud Build and stored in Artifact Registry. Our first setup submitted a single custom job from vertex_config_cpu.yaml; the final setup compiles a Kubeflow pipeline with preprocessing, training and evaluation stages, submitted with one invoke pipeline-run command that also supports quick smoke runs with reduced epochs. The preprocessing stage pulls the raw data with DVC, reproduces the processed tensors and uploads its dvc.lock to GCS, so the training stage pulls exactly the data version this run produced. Training runs Lightning with Hydra settings as a CustomJob on an n1-standard-32 worker and logs to W&B, retrieving the API key from Secret Manager. Afterwards, the best checkpoint is exported to ONNX, uploaded to GCS under the W&B run ID and registered as a new Vertex model version with the staging alias. The evaluation stage then scores it on the test set, returns accuracy, a confusion matrix and misclassified examples.
 
 ## Deployment
 
@@ -451,8 +519,11 @@ will check the repositories and the code to verify your answers.
 > *to the API to make it more ...*
 >
 > Answer:
+We wrote an API for our model with FastAPI. It has three endpoints: `/predict`, `/health` and `/metrics`. On startup it downloads the ONNX model from Cloud Storage and opens an ONNX Runtime session, so the serving image does not need PyTorch and stays small. `/predict` takes base64-encoded images, runs inference, applies softmax and returns the predicted class and the per-class probabilities for each image.
 
---- question 23 fill here ---
+Every incoming image is logged to a monitoring bucket so we can check for data drift later. If the model has not loaded yet, `/predict` returns a clean 503 instead of crashing. 
+
+The served model is just a path in Cloud Storage, so the promotion trigger can point the API at a new production model by updating one environment variable and redeploying.
 
 ### Question 24
 
@@ -468,7 +539,16 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 24 fill here ---
+We deployed the API both locally and in the cloud. Locally we run it with `invoke serve-api`; it fetches the ONNX model from Cloud Storage on startup, and without GCP credentials the API still runs but `/predict` answers 503. For the cloud we containerised it and let Cloud Build deploy it to Cloud Run in europe-west3 as the `eurosat-api` service, with `--allow-unauthenticated` so it is publicly reachable.
+
+Unlike the example, our service takes JSON rather than a file upload: a request consists of base64-encoded images. To invoke the deployed API you POST to `/predict`:
+
+curl -X POST https://eurosat-api-999981877996.europe-west3.run.app/predict \
+  -H 'Content-Type: application/json' \
+  -d '{"instances": [{"image_b64": "'"$(base64 -i image.jpg)"'"}]}'
+
+It returns the predicted class and the per-class probabilities for each image. Our Streamlit frontend calls the same `/predict` endpoint.
+
 
 ### Question 25
 
@@ -484,7 +564,9 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 25 fill here ---
+For functional testing we used pytest with FastAPI's TestClient, which runs the app through httpx. We have ten tests that hit the endpoints against a mocked ONNX session: `/health`, and `/predict` with a single image and with multiple images, plus the preprocessing, base64 decoding and softmax helpers. This checks that the routes return the right classes and shapes without needing the real model or GCP.
+
+We did not do load testing. If we did, we would use Locust: write a user that POSTs a base64 image to `/predict`, then ramp up concurrent users against the deployed Cloud Run service. We would record requests per second, the p50 and p95 latency and the error rate, and watch how Cloud Run autoscales and where latency starts to climb. Since the model runs one image at a time on CPU, we would expect per-request inference to be the bottleneck.
 
 ### Question 26
 
@@ -499,7 +581,9 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 26 fill here ---
+We implemented monitoring on two levels. First, the API exposes Prometheus metrics at `/metrics` — request count, errors and prediction latency — and the Cloud Run and Cloud Build logs go to Cloud Logging, while Cloud Monitoring collects the platform-level metrics, so we can see whether the service is healthy and how fast it responds. We also configured two Cloud Monitoring SLOs with alerts on the API service: a latency SLO and an availability SLO, both over a rolling 7-day window. 
+
+Second, we monitor for data drift. Every image that hits `/predict` is saved to a Cloud Storage bucket. A separate monitoring service loads a CLIP model and, on request, embeds the most recent prediction images, reduces them with a PCA fitted on a reference set, and runs an Evidently report (data drift and target drift) comparing the live traffic against that reference, saved as an HTML report. Its `/check` endpoint is called on a schedule by Cloud Scheduler and only runs the full analysis once at least 100 new predictions have accumulated, or a maximum staleness time has passed since the last run. This tells us whether the incoming satellite images start to look different from the training data.
 
 ## Overall discussion of project
 
@@ -518,7 +602,10 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 27 fill here ---
+Until the 18th of July 2026, we spent 84€ on this project. The only service that produced costs for us was GCP. The most expensive part was Vertex AI / Agent Platform custom training jobs with 34€; storage was comparatively negligible. The rest was spread across the other GCP services we used — Cloud Run, Cloud Build and container/artifact storage.
+
+Working in the cloud made the pipeline reproducible and gave us a shared registry, logs, and deployed endpoints. The difficult part was that feedback was slower and failures crossed service boundaries: an IAM rule, region, image tag, or environment variable could invalidate otherwise correct Python. Smoke runs, aggressive caching and smaller containers helped.
+
 
 ### Question 28
 
@@ -534,7 +621,7 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 28 fill here ---
+Our frontend lets you upload your own image, but on top of that it has a live map: the user pans an interactive map, a live red overlay shows the exact patch that will be classified, and the app pulls current Sentinel-2 imagery for that spot straight from the Copernicus Data Space API and classifies it automatically. We built the live map so the model can run on real, current satellite data instead of only the static EuroSAT dataset.
 
 ### Question 29
 
@@ -551,7 +638,17 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 29 fill here ---
+![EuroSAT — MLOps system architecture](figures/architecture.png)
+
+The starting point of the diagram is our local setup and version control. Code, Dockerfiles and Hydra configs live in GitHub, and the data is versioned with DVC — the hashes sit in Git while the actual EuroSAT images live in a Cloud Storage bucket.
+
+Whenever we push or open a pull request, GitHub Actions runs the CI: pytest with coverage, plus Ruff, formatting and mypy. If the DVC files change, a separate workflow posts a CML data report on the pull request. When a branch is merged to main, Cloud Build takes over: it builds our five Docker images in parallel, pushes them to Artifact Registry, and deploys the services to Cloud Run.
+
+Training runs as a Vertex AI pipeline with three steps. Preprocess reproduces the DVC data, train runs the Lightning CNN and logs metrics and metadata to W&B, and evaluate scores the ONNX model on the test set. The trained model is exported to ONNX, uploaded to Cloud Storage under its run ID, and registered in the Vertex Model Registry as staging.
+
+Registering a model emits an audit event. Eventarc routes it to our registry-trigger service, which acts as a gate: it compares the new model's validation accuracy against the current production model and checks its latency, and only if it passes does the model get the production alias and the API get repointed to it.
+
+On the serving side, the user interacts through a Streamlit map. It fetches current Sentinel-2 imagery for the chosen location from the Copernicus Data Space and calls the FastAPI service, which runs ONNX inference and exposes /predict, /health and Prometheus /metrics. Every prediction image is logged to a monitoring bucket. Finally, Cloud Scheduler periodically calls the monitoring service, which embeds recent images with CLIP, reduces them with PCA and runs an Evidently drift report against a reference set, storing the reports in Cloud Storage.
 
 ### Question 30
 
@@ -565,7 +662,17 @@ will check the repositories and the code to verify your answers.
 >
 > Answer:
 
---- question 30 fill here ---
+The main challenges were in the cloud infrastructure rather than in the model.
+
+Build time was the main constraint. A wrong IAM rule, region, image tag or environment variable would break an otherwise correct run, and each mistake required a full rebuild. To reduce this, we split dependencies per service, used CPU-only PyTorch where possible, ordered the Dockerfiles so dependency layers precede source changes, enabled caching and pushed the images in parallel. Recent builds now finish in a few minutes.
+
+Model release management took considerable time. Promotion was first tied to W&B, then moved to the Vertex Model Registry with staging and production aliases; serving was switched from a Vertex endpoint to Cloud Run, and an Eventarc trigger was added. Each change affected training, evaluation, storage paths, permissions and deployment. We handled this by keeping the model artifact path tied to the W&B run ID, adding small registry-trigger tests, and adding smoke pipeline options that reduce epochs and batches.
+
+A related bug was the data handoff in the Vertex pipeline: the dvc.lock baked into the training image became stale once preprocess re-ran, so later steps could pull the wrong data. We fixed it by having preprocess push the current lock to GCS and having train and evaluate pull that lock.
+
+Dependency management was a recurring issue. Splitting requirements across seven files allowed versions to drift, cross-platform CI repeatedly failed on missing mypy stubs and Windows/macOS differences, and a Dependabot bumps caused problems from time to time.
+
+A smaller issue was the live map, which initially used the wrong colour grading on the Copernicus data and produced worse predictions until we corrected it.
 
 ### Question 31
 
@@ -583,4 +690,14 @@ will check the repositories and the code to verify your answers.
 > *We have used ChatGPT to help debug our code. Additionally, we used GitHub Copilot to help write some of our code.*
 > Answer:
 
---- question 31 fill here ---
+Cosima Fröhner implemented the baseline CNN and Lightning conversion, configured Vertex AI training and the early Cloud Build path, expanded tests across data, model, training, API and the registry trigger, created the DVC-change/CML workflow and developed the CLIP/Evidently drift service, and Prometheus system metrics.
+
+Michael Speckbacher worked on DVC and preprocessing, Hydra and W&B integration, the Vertex pipeline, the model registry and the registry-change trigger with its Eventarc handler, evaluation visualizations, profiling, Docker/build optimization, the expanded Invoke tasks and the multi-OS/Python CI matrix.
+
+Philip Studener created the initial repository and CI/pre-commit setup, developed the early training Dockerfile and evaluation tests, implemented the FastAPI service and the first Streamlit frontend, added ONNX export, migrated serving to Cloud Run, and built the interactive live-map frontend that pulls Sentinel-2 imagery from the Copernicus Data Space.
+
+Everyone worked across training, cloud setup, deployment and the report, debugged failures, and reviewed and fixed each other's branches when something broke in CI or in the cloud. 
+
+All three members contributed through feature branches, pull requests, reviews, integration fixes and dependency maintenance.
+
+All team members used Claude Code to better understand code changes, implement ideas quickly and assess the Git history for the final report.
