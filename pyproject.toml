@@ -16,7 +16,6 @@ keywords = ["machine learning", "MLOps"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Programming Language :: Python :: 3",
-  "License :: OSI Approved :: MIT License",
 ]
 readme = "README.md"
 requires-python = ">=3.12"
