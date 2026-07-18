@@ -6,19 +6,19 @@ pre-commit==4.6.0
 
 # testing
 pytest==9.1.1
-coverage==7.15.1
+coverage==7.15.2
 pytest-cov==7.1.0
 
 # linting
-ruff==0.15.21
-mypy==2.2.0
+ruff==0.15.22
+mypy==2.3.0
 
 # docs
-mkdocs-material==9.7.6
+mkdocs-material==9.7.7
 mkdocstrings-python==2.0.5
 
 # vertex pipeline
-kfp>=2.16.1,<2.17.0
+kfp>=2.17.0,<2.18.0
 google-cloud-pipeline-components>=2.22.0
 
 types-PyYAML>=6.0.12.20260518
