@@ -18,7 +18,7 @@ parameters:
   training.batch_size:
     values: [32, 64, 128]
   training.max_epochs:
-    value: 30
+    value: 50
   training.register_model:
     value: false
 
