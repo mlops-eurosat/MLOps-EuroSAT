@@ -18,7 +18,7 @@ mkdocs-material==9.7.6
 mkdocstrings-python==2.0.5
 
 # vertex pipeline
-kfp>=2.17.0
+kfp>=2.16.1,<2.17.0
 google-cloud-pipeline-components>=2.22.0
 
 types-PyYAML>=6.0.12.20260518
