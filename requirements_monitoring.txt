@@ -1,10 +1,10 @@
 fastapi==0.139.0
-uvicorn==0.50.0
+uvicorn==0.51.0
 numpy==2.5.1
 pillow==12.3.0
 pandas==3.0.4
 scikit-learn==1.9.0
 evidently==0.7.21
-transformers==5.13.0
-torch==2.12.1
-google-cloud-storage>=3.12.0
+transformers==5.13.1
+torch==2.13.0
+google-cloud-storage>=3.12.1
