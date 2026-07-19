@@ -123,8 +123,7 @@ def classify(img: Image.Image) -> dict:
         img: RGB image to classify.
 
     Returns:
-        The prediction for the image: class index, class name, and
-        per-class probabilities.
+        The prediction for the image: class index, class name, and per-class probabilities.
     """
     buf = io.BytesIO()
     img.save(buf, format="PNG")

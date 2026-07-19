@@ -39,3 +39,9 @@ Documentation of the classes and functions in the `mlops_eurosat` Python package
 ### Map Frontend
 
 ::: mlops_eurosat.frontend_map
+
+## Tooling
+
+### Quantization
+
+::: mlops_eurosat.quantize
