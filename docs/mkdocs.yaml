@@ -1,5 +1,9 @@
 site_name: mlops_eurosat
 site_author: Cosima Fröhner, Philip Studener, Michael Speckbacher
+site_description: MLOps pipeline for land use classification on the EuroSAT dataset
+site_url: https://mlops-eurosat.github.io/MLOps-EuroSAT/
+repo_url: https://github.com/mlops-eurosat/MLOps-EuroSAT
+repo_name: mlops-eurosat/MLOps-EuroSAT
 docs_dir: source
 
 theme:
@@ -8,6 +12,8 @@ theme:
   features:
     - content.code.copy
     - content.code.annotate
+    - navigation.instant
+    - navigation.tracking
 
 plugins:
   - search
@@ -21,3 +27,4 @@ plugins:
 
 nav:
   - Home: index.md
+  - Python Module Reference: api.md
