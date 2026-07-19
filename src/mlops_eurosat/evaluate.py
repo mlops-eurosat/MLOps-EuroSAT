@@ -1,3 +1,10 @@
+"""Evaluate a trained checkpoint on the test split.
+
+Prints a per-class classification report:
+
+    python src/mlops_eurosat/evaluate.py models/checkpoints/<name>.ckpt
+"""
+
 import torch
 import typer
 from sklearn.metrics import classification_report
@@ -9,7 +16,14 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def load_model(checkpoint_path: str) -> Model:
-    """Load a trained model from a checkpoint."""
+    """Load a Lightning checkpoint into a `Model` in eval mode on DEVICE.
+
+    Args:
+        checkpoint_path: Path to a .ckpt file written during training.
+
+    Returns:
+        The model with the checkpoint weights loaded.
+    """
     model = Model()
 
     checkpoint = torch.load(
@@ -28,7 +42,15 @@ def predict(
     model: Model,
     dataloader: DataLoader,
 ) -> tuple[list[int], list[int]]:
-    """Generate predictions for a dataloader."""
+    """Run the model over a dataloader without gradients.
+
+    Args:
+        model: Model in eval mode.
+        dataloader: Batches of (images, targets).
+
+    Returns:
+        Two lists of class indices: (targets, predictions).
+    """
     all_preds: list[int] = []
     all_targets: list[int] = []
 
@@ -47,7 +69,11 @@ def predict(
 
 
 def evaluate(model_checkpoint: str) -> None:
-    """Evaluate a trained model."""
+    """CLI entry point: score a checkpoint on data/processed/test.pt.
+
+    Args:
+        model_checkpoint: Path to the .ckpt file to evaluate.
+    """
     print(f"Evaluating {model_checkpoint}")
 
     model = load_model(model_checkpoint)
