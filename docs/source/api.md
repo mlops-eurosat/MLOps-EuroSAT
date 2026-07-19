@@ -55,3 +55,7 @@ Documentation of the classes and functions in the `mlops_eurosat` Python package
 ### Quantization
 
 ::: mlops_eurosat.quantize
+
+### Profiling
+
+::: mlops_eurosat.profiling

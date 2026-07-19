@@ -1,11 +1,10 @@
-"""Profiling for the EuroSAT training pipeline.
+"""Profile the EuroSAT training pipeline.
 
-Runs three passes and prints each to the terminal: a wall-clock data-loading vs.
-compute split, a cProfile function table, and a torch.profiler operator table.
-Uses the same Hydra config as train.py, so any train.py override works here too.
+Reports the data-loading vs. compute split, top Python functions, and top
+torch operators. Uses the same Hydra config (and overrides) as train.py.
 
-    python src/mlops_eurosat/profiling.py +profiling.steps=100
-    python src/mlops_eurosat/profiling.py training.num_workers=0 +profiling.torch=false
+Run with:
+    python src/mlops_eurosat/profiling.py [+profiling.steps=100]
 """
 
 import cProfile
@@ -192,6 +191,12 @@ def _profile_torch(
 
 @hydra.main(config_path="../../configs", config_name="config", version_base=None)
 def main(cfg: DictConfig) -> None:
+    """Run the profiling passes with the configured settings.
+
+    Args:
+        cfg: Hydra configuration; reads ``profiling.steps``, ``profiling.warmup``,
+            ``profiling.torch``, and the ``training`` settings.
+    """
     steps = int(OmegaConf.select(cfg, "profiling.steps", default=50))
     warmup = int(OmegaConf.select(cfg, "profiling.warmup", default=5))
     run_torch = bool(OmegaConf.select(cfg, "profiling.torch", default=True))
