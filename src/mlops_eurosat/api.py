@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 
 import numpy as np
 import onnxruntime as ort
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from google.cloud import storage  # type: ignore[attr-defined]
 from PIL import Image
 from prometheus_client import Counter, Histogram, Summary, make_asgi_app
@@ -133,7 +133,7 @@ async def health():
 
 
 @app.post(PREDICT_ROUTE)
-async def predict(request: Request):
+async def predict(request: Request, background_tasks: BackgroundTasks):
     prediction_requests.inc()
     with prediction_latency.time():
         try:
@@ -153,7 +153,7 @@ async def predict(request: Request):
                 idx = int(np.argmax(probs))
                 class_name = CLASS_NAMES[idx]
 
-                _log_image(image, class_name)
+                background_tasks.add_task(_log_image, image, class_name)
 
                 predictions.append(
                     {
