@@ -6,7 +6,9 @@
 
 MLOps pipeline for land use classification on the EuroSAT dataset.
 
-Documentation: <https://mlops-eurosat.github.io/MLOps-EuroSAT/>
+Interactive frontend: [Frontend](https://eurosat-frontend-999981877996.europe-west3.run.app/)
+
+Documentation: [Documentation](https://mlops-eurosat.github.io/MLOps-EuroSAT/)
 
 ## Project structure
 
