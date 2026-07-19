@@ -10,10 +10,10 @@ from datetime import datetime, timezone
 
 import numpy as np
 import onnxruntime as ort
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
 from google.cloud import storage  # type: ignore[attr-defined]
 from PIL import Image
-from prometheus_client import Counter, Histogram, Summary, make_asgi_app
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, Summary, generate_latest
 
 HEALTH_ROUTE = os.environ.get("AIP_HEALTH_ROUTE", "/health")
 PREDICT_ROUTE = os.environ.get("AIP_PREDICT_ROUTE", "/predict")
@@ -113,12 +113,21 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-app.mount("/metrics", make_asgi_app())
 
 prediction_requests = Counter("prediction_requests_total", "Total number of prediction requests")
 prediction_errors = Counter("prediction_errors_total", "Total number of prediction errors")
 prediction_latency = Histogram("prediction_latency_seconds", "Prediction latency in seconds")
 instances_per_request = Summary("prediction_instances_per_request", "Number of instances per request")
+
+
+@app.get("/metrics")
+def metrics() -> Response:
+    """Expose Prometheus metrics.
+
+    Must answer 200 directly on /metrics: the GMP sidecar scrapes this path and
+    does not follow the 307 redirect that a mounted sub-app would return.
+    """
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 def _log_image(image: Image.Image, class_name: str) -> None:
@@ -155,7 +164,7 @@ async def health() -> dict:
 
 
 @app.post(PREDICT_ROUTE)
-async def predict(request: Request) -> dict:
+async def predict(request: Request, background_tasks: BackgroundTasks) -> dict:
     """Classify base64-encoded images.
 
     Args:
@@ -183,7 +192,7 @@ async def predict(request: Request) -> dict:
                 idx = int(np.argmax(probs))
                 class_name = CLASS_NAMES[idx]
 
-                _log_image(image, class_name)
+                background_tasks.add_task(_log_image, image, class_name)
 
                 predictions.append(
                     {
