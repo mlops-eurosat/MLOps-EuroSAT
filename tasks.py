@@ -350,7 +350,7 @@ def load_test(
     gs://eurosat_monitoring/predictions/ afterwards.
     """
     ctx.run(
-        f"locust -f locustfile.py --headless -u {users} -r {spawn_rate} -t {run_time} --host {host}",
+        f"locust -f tests/performancetests/locustfile.py --headless -u {users} -r {spawn_rate} -t {run_time} --host {host}",
         echo=True,
         pty=not WINDOWS,
     )

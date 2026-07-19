@@ -4,7 +4,7 @@ Run headless against the Cloud Run service (or a local container):
 
     invoke load-test
     invoke load-test --users 100 --spawn-rate 10 --run-time 5m
-    locust -f locustfile.py  # interactive web UI on :8089
+    locust -f tests/performancetests/locustfile.py  # interactive web UI on :8089
 
 Each simulated user POSTs a base64-encoded 64x64 RGB image to /predict,
 the same payload format the frontend sends. Everry request also
