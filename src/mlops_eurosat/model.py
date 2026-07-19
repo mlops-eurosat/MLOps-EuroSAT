@@ -1,3 +1,5 @@
+"""CNN classifier for EuroSAT, implemented as a PyTorch Lightning module."""
+
 import pytorch_lightning as pl
 import torch
 from torch import nn
@@ -5,7 +7,16 @@ from torchmetrics.classification import MulticlassAccuracy
 
 
 class Model(pl.LightningModule):
-    """CNN model for EuroSAT image classification."""
+    """CNN for EuroSAT image classification.
+
+    Four Conv-BatchNorm-ReLU-MaxPool blocks (32 to 256 channels), global
+    average pooling, then a two-layer classifier with dropout. Trained with
+    cross-entropy; accuracy is tracked per split.
+
+    Args:
+        num_classes: Number of output classes.
+        lr: Initial learning rate for Adam.
+    """
 
     def __init__(self, num_classes: int = 10, lr: float = 1e-3) -> None:
         super().__init__()
@@ -44,6 +55,7 @@ class Model(pl.LightningModule):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Map an image batch (B, 3, 64, 64) to logits (B, num_classes)."""
         x = self.features(x)
         x = self.classifier(x)
         return x
@@ -55,6 +67,7 @@ class Model(pl.LightningModule):
         return loss, preds, targets
 
     def training_step(self, batch):
+        """Compute the loss on a training batch and log train_loss/train_acc."""
         loss, preds, targets = self._shared_step(batch)
         self.train_acc(preds, targets)
         self.log("train_loss", loss, prog_bar=True)
@@ -62,6 +75,7 @@ class Model(pl.LightningModule):
         return loss
 
     def validation_step(self, batch):
+        """Compute the loss on a validation batch and log val_loss/val_acc."""
         loss, preds, targets = self._shared_step(batch)
         self.val_acc(preds, targets)
         self.log("val_loss", loss, prog_bar=True)
@@ -69,6 +83,7 @@ class Model(pl.LightningModule):
         return loss
 
     def test_step(self, batch):
+        """Compute the loss on a test batch and log test_loss/test_acc."""
         loss, preds, targets = self._shared_step(batch)
         self.test_acc(preds, targets)
         self.log("test_loss", loss)
@@ -76,6 +91,7 @@ class Model(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
+        """Adam plus ReduceLROnPlateau (halved after 3 epochs without val_loss improvement)."""
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.5, patience=3)
         return {
