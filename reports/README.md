@@ -97,11 +97,11 @@ will check the repositories and the code to verify your answers.
 
 ### Week 3
 
-* [ ] Check how robust your model is towards data drifting (M27)
+* [x] Check how robust your model is towards data drifting (M27)
 * [x] Setup collection of input-output data from your deployed application (M27)
 * [x] Deploy to the cloud a drift detection API (M27)
 * [x] Instrument your API with a couple of system metrics (M28)
-* [ ] Setup cloud monitoring of your instrumented application (M28)
+* [x] Setup cloud monitoring of your instrumented application (M28)
 * [x] Create one or more alert systems in GCP to alert you if your app is not behaving correctly (M28)
 * [ ] If applicable, optimize the performance of your data loading using distributed data loading (M29)
 * [ ] If applicable, optimize the performance of your training pipeline by using distributed training (M30)
@@ -109,8 +109,8 @@ will check the repositories and the code to verify your answers.
 
 ### Extra
 
-* [ ] Write some documentation for your application (M32)
-* [ ] Publish the documentation to GitHub Pages (M32)
+* [x] Write some documentation for your application (M32)
+* [x] Publish the documentation to GitHub Pages (M32)
 * [x] Revisit your initial project description. Did the project turn out as you wanted?
 * [x] Create an architectural diagram over your MLOps pipeline
 * [x] Make sure all group members have an understanding about all parts of the project
@@ -640,15 +640,15 @@ Our frontend lets you upload your own image, but on top of that it has a live ma
 
 ![EuroSAT — MLOps system architecture](figures/architecture.png)
 
-The starting point of the diagram is our local setup and version control. Code, Dockerfiles and Hydra configs live in GitHub, and the data is versioned with DVC — the hashes sit in Git while the actual EuroSAT images live in a Cloud Storage bucket.
+The starting point of the diagram is our local setup and version control. Code, Dockerfiles and Hydra configs live in GitHub, guarded locally by pre-commit hooks (ruff, mypy, pytest), and the data is versioned with DVC — the hashes sit in Git while the EuroSAT images live in a Cloud Storage bucket.
 
-Whenever we push or open a pull request, GitHub Actions runs the CI: pytest with coverage, plus Ruff, formatting and mypy. If the DVC files change, a separate workflow posts a CML data report on the pull request. When a branch is merged to main, Cloud Build takes over: it builds our five Docker images in parallel, pushes them to Artifact Registry, and deploys the services to Cloud Run.
+Whenever we push or open a pull request, GitHub Actions runs the CI: pytest with coverage on a 3-OS × 2-Python matrix, plus Ruff, formatting and mypy. If DVC files change, a separate workflow posts a CML data report on the pull request, and on main the docs workflow builds the mkdocs site and publishes it to GitHub Pages. When a branch is merged to main, Cloud Build builds our five Docker images in parallel, pushes them to Artifact Registry, and deploys the services to Cloud Run.
 
-Training runs as a Vertex AI pipeline with three steps. Preprocess reproduces the DVC data, train runs the Lightning CNN and logs metrics and metadata to W&B, and evaluate scores the ONNX model on the test set. The trained model is exported to ONNX, uploaded to Cloud Storage under its run ID, and registered in the Vertex Model Registry as staging.
+Training runs as a Vertex AI pipeline with three steps. Preprocess reproduces the DVC data. Train runs the Lightning CNN — fetching its W&B key from Secret Manager — logs metrics to W&B, exports the best checkpoint to ONNX, uploads it to Cloud Storage under its run ID and registers it as staging in the Vertex Model Registry. Evaluate then downloads exactly this staging model and scores it on the test set.
 
 Registering a model emits an audit event. Eventarc routes it to our registry-trigger service, which acts as a gate: it compares the new model's validation accuracy against the current production model and checks its latency, and only if it passes does the model get the production alias and the API get repointed to it.
 
-On the serving side, the user interacts through a Streamlit map. It fetches current Sentinel-2 imagery for the chosen location from the Copernicus Data Space and calls the FastAPI service, which runs ONNX inference and exposes /predict, /health and Prometheus /metrics. Every prediction image is logged to a monitoring bucket. Finally, Cloud Scheduler periodically calls the monitoring service, which embeds recent images with CLIP, reduces them with PCA and runs an Evidently drift report against a reference set, storing the reports in Cloud Storage.
+On the serving side, the user interacts through a Streamlit app with a live map and an upload tab. The map fetches current Sentinel-2 imagery from the Copernicus Data Space — with Sentinel Hub credentials from Secret Manager — and calls the FastAPI service, which runs ONNX inference and exposes /predict, /health and /metrics. A Prometheus sidecar scrapes those metrics into Cloud Monitoring, where SLOs and alerts watch the service; our Locust load test hits the same endpoint. Every prediction image is logged asynchronously to a monitoring bucket. Finally, Cloud Scheduler periodically calls the monitoring service, which embeds recent images with CLIP, reduces them with PCA and runs an Evidently drift report against a reference set, storing the reports in Cloud Storage.
 
 ### Question 30
 
