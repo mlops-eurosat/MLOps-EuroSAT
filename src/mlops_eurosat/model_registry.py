@@ -76,6 +76,9 @@ def register_candidate(artifact_uri: str, val_acc: float) -> aiplatform.Model:
         artifact_uri: GCS dir holding the checkpoint, e.g.
             ``gs://eurosat_models/checkpoints/<run-id>/``.
         val_acc: validation accuracy, stored as a label for the promotion check.
+
+    Returns:
+        The uploaded model version.
     """
     _init()
     existing = _get_model()
@@ -104,7 +107,16 @@ def get_current_production() -> tuple[str | None, float | None]:
 
 
 def promote_if_better(staging_version: str | None = None) -> bool:
-    """Promote the staging model to ``production`` iff it beats the current one."""
+    """Promote the staging model to ``production`` iff it beats the current one.
+
+    Compares the ``val_acc`` labels of candidate and current production model.
+
+    Args:
+        staging_version: Alias or version id of the candidate; defaults to ``staging``.
+
+    Returns:
+        True if the candidate was promoted, False if production was kept.
+    """
     model = _get_model()
     if model is None:
         raise RuntimeError(f"No '{MODEL_DISPLAY_NAME}' model found in the registry.")
@@ -161,7 +173,16 @@ def deploy_to_cloud_run(version_alias: str = PRODUCTION_ALIAS) -> str:
 
 
 def performance_gate(max_latency_s: float = 5.0, num_predictions: int = 100, alias: str = STAGING_ALIAS) -> bool:
-    """Time `num_predictions` forward passes of the staging model; True if under the limit."""
+    """Latency check: time forward passes of the candidate ONNX model on CPU.
+
+    Args:
+        max_latency_s: Total time budget for all predictions together.
+        num_predictions: Number of single-image forward passes to run.
+        alias: Model version to check; defaults to ``staging``.
+
+    Returns:
+        True if all predictions finished within the budget.
+    """
     import tempfile
     import time
 
@@ -193,7 +214,8 @@ def performance_gate(max_latency_s: float = 5.0, num_predictions: int = 100, ali
 def gate_promote_deploy(max_latency_s: float = 5.0) -> str:
     """Run the full registry-change reaction: gate -> promote -> deploy to Cloud Run.
 
-    Returns a short status string describing what happened.
+    Returns:
+        One of ``gate_failed``, ``not_better`` or ``promoted_and_deployed``.
     """
     if not performance_gate(max_latency_s=max_latency_s):
         print("[registry-trigger] staging failed the performance gate; not promoting.")

@@ -30,6 +30,16 @@ Documentation of the classes and functions in the `mlops_eurosat` Python package
 
 ::: mlops_eurosat.pipeline
 
+## Deployment
+
+### Model Registry
+
+::: mlops_eurosat.model_registry
+
+### Registry Trigger
+
+::: mlops_eurosat.registry_trigger
+
 ## Serving
 
 ### Inference API
