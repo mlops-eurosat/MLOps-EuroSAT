@@ -123,3 +123,15 @@ def test_predict_endpoint_multiple_instances():
     assert response.status_code == 200
     assert len(response.json()["predictions"]) == 2
     assert mock_log.call_count == 2
+
+
+def test_metrics_endpoint_no_redirect():
+    """/metrics answers 200 directly; the GMP sidecar cannot follow a 307 redirect."""
+    from mlops_eurosat.api import app
+
+    with patch("mlops_eurosat.api._load_session_from_gcs", return_value=_mock_session()):
+        with TestClient(app) as client:
+            response = client.get("/metrics", follow_redirects=False)
+
+    assert response.status_code == 200
+    assert "prediction_requests_total" in response.text
