@@ -227,6 +227,9 @@ def _render_prediction(pred: dict, img: Image.Image | None, location_label: str 
     st.metric("Confidence", f"{top_prob * 100:.1f}%")
     if img:
         st.image(img, caption="Image sent to model", width=192)
+        # Copernicus attribution: only live-map patches are Sentinel imagery.
+        if location_label:
+            st.caption(f"Contains modified Copernicus Sentinel data ({time.strftime('%Y')}).")
     st.divider()
     st.subheader("Class probabilities")
     df = (
