@@ -432,7 +432,7 @@ We wrote a small profiling script (`invoke profile`) that runs three passes over
 >
 > Answer:
 
-We used Cloud Storage for DVC data, ONNX models, pipeline artifacts and logged predictions; Artifact Registry for our five container images; and Cloud Build for automated builds and Cloud Run deployments. Vertex AI runs custom training jobs and the preprocess–train–evaluate pipeline, and its Model Registry stores model versions with the `staging` and `production` aliases. Cloud Run hosts the API, frontend, monitoring API and registry trigger. Eventarc routes Vertex model-upload audit events to that trigger, and Cloud Scheduler calls the monitoring `/check` endpoint for drift checks. Secret Manager holds the W&B and Sentinel Hub credentials. The API exposes Prometheus metrics (request counts, latency, errors) at `/metrics`, while Cloud Logging and Cloud Monitoring collect the logs and platform-level metrics from Cloud Run and Cloud Build. IAM service accounts tie these services together. 
+We used Cloud Storage for DVC data, ONNX models, pipeline artifacts and logged predictions; Artifact Registry for our five container images; and Cloud Build for automated builds and Cloud Run deployments. Vertex AI runs custom training jobs and the preprocess–train–evaluate pipeline, and its Model Registry stores model versions with the `staging` and `production` aliases. Cloud Run hosts the API, frontend, monitoring API and registry trigger. Eventarc routes Vertex model-upload audit events to that trigger, and Cloud Scheduler calls the monitoring `/check` endpoint for drift checks. Secret Manager holds the W&B and Sentinel Hub credentials. The API exposes Prometheus metrics (request counts, latency, errors) at `/metrics`, while Cloud Logging and Cloud Monitoring collect the logs and metrics. IAM service accounts tie these services together. 
 
 ### Question 18
 
@@ -564,7 +564,7 @@ It returns the predicted class and the per-class probabilities for each image. O
 >
 > Answer:
 
-For functional testing we used pytest with FastAPI's TestClient: ten tests hit `/health` and `/predict` (single and batched images) against a mocked ONNX session, plus the preprocessing, base64-decoding and softmax helpers, checking that the routes return the right classes and shapes without needing the real model or GCP.
+For functional testing we used pytest with FastAPI's TestClient: eleven tests hit `/health`, `/predict` (single and batched images) and `/metrics` against a mocked ONNX session, plus the preprocessing, base64-decoding and softmax helpers, checking that the routes return the right classes and shapes without needing the real model or GCP.
 
 For load testing we ran Locust against the deployed Cloud Run service (`invoke load-test`), each user POSTing a base64 image to `/predict`. Under moderate load (50 users, two minutes) the API served ~20 requests per second with zero failures at a median latency of 0.7 s (p95 3.7 s). A one-minute stress run with 1,000 users saturated the service: throughput plateaued at ~105 requests per second, median latency rose to ~7 s (p95 14 s), and 12 of 6,054 requests (0.2%) were rejected with HTTP 429 once Cloud Run stopped scaling out. `/health` was then as slow as `/predict`, so the time is spent queueing for instances rather than in inference, and the synchronous image upload to the monitoring bucket adds more.
 
@@ -581,9 +581,9 @@ For load testing we ran Locust against the deployed Cloud Run service (`invoke l
 >
 > Answer:
 
-We implemented monitoring on two levels. First, the API exposes Prometheus metrics at `/metrics` — request count, errors and prediction latency — and the Cloud Run and Cloud Build logs go to Cloud Logging, while Cloud Monitoring collects the platform-level metrics, so we can see whether the service is healthy and how fast it responds. We also configured two Cloud Monitoring SLOs with alerts on the API service: a latency SLO and an availability SLO, both over a rolling 7-day window. 
+We implemented monitoring on two levels. First, the API exposes Prometheus metrics at /metrics — request count, errors and prediction latency. A Managed Prometheus sidecar in the Cloud Run service scrapes this endpoint into Cloud Monitoring, where we query them with PromQL alongside the platform metrics; logs go to Cloud Logging. We also set up two Cloud Monitoring SLOs with alerts on the API: a latency SLO and an availability SLO over a rolling 7-day window.
 
-Second, we monitor for data drift. Every image that hits `/predict` is saved to a Cloud Storage bucket. A separate monitoring service loads a CLIP model and, on request, embeds the most recent prediction images, reduces them with a PCA fitted on a reference set, and runs an Evidently report (data drift and target drift) comparing the live traffic against that reference, saved as an HTML report. Its `/check` endpoint is called on a schedule by Cloud Scheduler and only runs the full analysis once at least 500 new predictions have accumulated, or a maximum staleness time has passed since the last run. This tells us whether the incoming satellite images start to look different from the training data.
+Second, we monitor for data drift. Every image sent to /predict is saved to a Cloud Storage bucket. A separate monitoring service embeds the most recent prediction images with CLIP, reduces them with a PCA fitted on a reference set, and runs an Evidently report (data and target drift) against that reference, saved as HTML. Cloud Scheduler calls its /check endpoint on a schedule, which runs the full analysis only once 500 new predictions have accumulated or a maximum staleness time has passed. This tells us whether incoming satellite images start to look different from the training data.
 
 ## Overall discussion of project
 
