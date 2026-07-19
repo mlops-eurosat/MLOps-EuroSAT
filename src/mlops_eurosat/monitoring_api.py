@@ -1,10 +1,7 @@
-"""Monitoring API — serves an Evidently drift report on demand.
+"""Monitoring API serving Evidently drift reports on demand.
 
-Startup: downloads reference CLIP embeddings from GCS, loads CLIP, fits PCA.
-GET /report?n=500       : always runs full analysis on last n predictions.
-GET /check               : gated endpoint for Cloud Scheduler — only runs when
-                           MIN_SAMPLES new predictions have arrived or MAX_STALENESS_HOURS
-                           have passed since the last full run.
+Compares recent prediction images against reference CLIP embeddings, either
+on request (``/report``) or gated for Cloud Scheduler (``/check``).
 """
 
 import json
@@ -153,6 +150,12 @@ def _run_analysis(n: int) -> str:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Load CLIP, download the reference embeddings, and fit PCA on startup.
+
+    Args:
+        app: The FastAPI application; the models and reference data are
+            stored on ``app.state``.
+    """
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model, processor = _load_clip(device)
     ref_embeddings, ref_targets = _download_reference(MONITORING_BUCKET)
@@ -179,22 +182,41 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/health")
-def health():
+def health() -> dict:
+    """Report service liveness.
+
+    Returns:
+        ``{"status": "ok"}`` while the service is running.
+    """
     return {"status": "ok"}
 
 
 @app.get("/report", response_class=HTMLResponse)
-def report(n: int = 500):
-    """Always runs the full drift analysis on the last n predictions."""
+def report(n: int = 500) -> HTMLResponse:
+    """Run the full drift analysis unconditionally.
+
+    Args:
+        n: Number of most recent predictions to analyse.
+
+    Returns:
+        The Evidently drift report as HTML.
+    """
     return HTMLResponse(content=_run_analysis(n))
 
 
 @app.get("/check")
-def check(n: int = 500):
-    """Gated endpoint for Cloud Scheduler.
+def check(n: int = 500) -> JSONResponse:
+    """Run the drift analysis if enough new data has arrived (for Cloud Scheduler).
 
-    Runs analysis only when MIN_SAMPLES new predictions have arrived
-    or MAX_STALENESS_HOURS have passed since the last full run.
+    Runs only when ``MIN_SAMPLES`` new predictions have arrived or
+    ``MAX_STALENESS_HOURS`` have passed since the last full run; generated
+    reports are archived to GCS.
+
+    Args:
+        n: Number of most recent predictions to analyse.
+
+    Returns:
+        Whether the analysis ran or was skipped, and why.
     """
     now = datetime.now(timezone.utc)
     state = _read_state(MONITORING_BUCKET)
