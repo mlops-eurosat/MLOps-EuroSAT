@@ -79,8 +79,7 @@ This project is licensed under the MIT License — see [LICENSE](LICENSE).
 
 This project uses the [EuroSAT dataset](https://github.com/phelber/EuroSAT)
 (Helber et al.), released under the MIT License. EuroSAT contains modified
-Copernicus Sentinel data (2017), used in accordance with the
-[Copernicus Sentinel Data Terms and Conditions](https://sentinel.esa.int/documents/247904/690755/Sentinel_Data_Legal_Notice).
+Copernicus Sentinel data (2017).
 
 If you use this work, please cite:
 
