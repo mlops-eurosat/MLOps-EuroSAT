@@ -349,11 +349,11 @@ def load_test(
     Every request logs an image to the monitoring bucket
     gs://eurosat_monitoring/predictions/ afterwards.
     """
-    ctx.run(
-        f"locust -f tests/performancetests/locustfile.py --headless -u {users} -r {spawn_rate} -t {run_time} --host {host}",
-        echo=True,
-        pty=not WINDOWS,
+    cmd = (
+        "locust -f tests/performancetests/locustfile.py --headless "
+        f"-u {users} -r {spawn_rate} -t {run_time} --host {host}"
     )
+    ctx.run(cmd, echo=True, pty=not WINDOWS)
 
 
 # Quality commands
