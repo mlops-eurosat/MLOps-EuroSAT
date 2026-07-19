@@ -6,11 +6,15 @@
 
 MLOps pipeline for land use classification on the EuroSAT dataset.
 
-Documentation: <https://mlops-eurosat.github.io/MLOps-EuroSAT/>
-
 ## Architecture
 
 ![EuroSAT MLOps system architecture](reports/figures/architecture.png)
+
+## Links
+
+Interactive frontend: [Frontend](https://eurosat-frontend-999981877996.europe-west3.run.app/)
+
+Documentation: [Documentation](https://mlops-eurosat.github.io/MLOps-EuroSAT/)
 
 ## Project structure
 
@@ -83,8 +87,7 @@ This project is licensed under the MIT License — see [LICENSE](LICENSE).
 
 This project uses the [EuroSAT dataset](https://github.com/phelber/EuroSAT)
 (Helber et al.), released under the MIT License. EuroSAT contains modified
-Copernicus Sentinel data (2017), used in accordance with the
-[Copernicus Sentinel Data Terms and Conditions](https://sentinel.esa.int/documents/247904/690755/Sentinel_Data_Legal_Notice).
+Copernicus Sentinel data (2017).
 
 If you use this work, please cite:
 

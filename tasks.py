@@ -335,6 +335,27 @@ def data_drift(ctx: Context, n_predictions: int = 500, output: str = "reports/dr
     ctx.run(cmd, echo=True, pty=not WINDOWS)
 
 
+@task
+def load_test(
+    ctx: Context,
+    host: str = "https://eurosat-api-999981877996.europe-west3.run.app",
+    users: int = 50,
+    spawn_rate: int = 5,
+    run_time: str = "3m",
+) -> None:
+    """Load test the deployed API with Locust (headless; prints RPS and latency percentiles).
+
+    e.g. invoke load-test --users 100 --spawn-rate 10 --run-time 5m
+    Every request logs an image to the monitoring bucket
+    gs://eurosat_monitoring/predictions/ afterwards.
+    """
+    cmd = (
+        "locust -f tests/performancetests/locustfile.py --headless "
+        f"-u {users} -r {spawn_rate} -t {run_time} --host {host}"
+    )
+    ctx.run(cmd, echo=True, pty=not WINDOWS)
+
+
 # Quality commands
 @task
 def test(ctx: Context) -> None:
@@ -362,21 +383,19 @@ def serve_api(ctx: Context, port: int = 8000) -> None:
 
 
 @task
-def frontend(ctx: Context, upload: bool = False) -> None:
-    """Run the Streamlit map frontend; --upload starts the file-upload variant instead.
+def frontend(ctx: Context) -> None:
+    """Run the Streamlit frontend (live map + upload tab).
 
-    The map variant needs Sentinel Hub credentials; if SH_CLIENT_ID or
+    The map needs Sentinel Hub credentials; if SH_CLIENT_ID or
     SH_CLIENT_SECRET is not set, it is fetched from Secret Manager (the same
     secrets the Cloud Run deploy uses).
     """
-    script = "frontend.py" if upload else "frontend_map.py"
     env = {}
-    if not upload:
-        for var, secret in (("SH_CLIENT_ID", "sh-client-id"), ("SH_CLIENT_SECRET", "sh-client-secret")):
-            if not os.environ.get(var):
-                fetched = ctx.run(f"gcloud secrets versions access latest --secret={secret}", hide=True)
-                env[var] = fetched.stdout.strip()
-    ctx.run(f"streamlit run src/{PROJECT_NAME}/{script}", echo=True, pty=not WINDOWS, env=env)
+    for var, secret in (("SH_CLIENT_ID", "sh-client-id"), ("SH_CLIENT_SECRET", "sh-client-secret")):
+        if not os.environ.get(var):
+            fetched = ctx.run(f"gcloud secrets versions access latest --secret={secret}", hide=True)
+            env[var] = fetched.stdout.strip()
+    ctx.run(f"streamlit run src/{PROJECT_NAME}/frontend_map.py", echo=True, pty=not WINDOWS, env=env)
 
 
 # Build & deploy commands

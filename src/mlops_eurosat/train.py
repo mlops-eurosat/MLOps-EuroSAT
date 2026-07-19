@@ -1,3 +1,12 @@
+"""Train the EuroSAT classifier, configured via Hydra.
+
+Logs to W&B and, if `training.register_model` is set, exports the best
+checkpoint to ONNX and registers it in the Vertex Model Registry. Any config
+value can be overridden on the command line:
+
+    python src/mlops_eurosat/train.py training.lr=0.0005 training.max_epochs=30
+"""
+
 import json
 import logging
 import os
@@ -40,6 +49,7 @@ def _ensure_wandb_key() -> None:
 
 
 def _make_loader(path: str, batch_size: int, shuffle: bool, num_workers: int) -> DataLoader:
+    """Build a DataLoader from a preprocessed .pt file (see data.py)."""
     data = torch.load(path, weights_only=False)
     dataset = TensorDataset(data["images"], data["targets"])
     return DataLoader(
@@ -106,6 +116,18 @@ def _upload_and_register(
 
 @hydra.main(config_path="../../configs", config_name="config", version_base=None)
 def train(cfg: DictConfig) -> None:
+    """Run one training experiment defined by the Hydra config.
+
+    Seeds everything, trains on the preprocessed tensors with early stopping
+    (patience on val_loss) while checkpointing the best val_loss and val_acc
+    epochs, tests the best-val_acc checkpoint, and logs all metrics and the
+    resolved config to W&B. With `training.register_model=true` the best
+    checkpoint is exported to ONNX, uploaded to GCS and registered as the
+    staging candidate.
+
+    Args:
+        cfg: Composed config from configs/ (model, training, wandb groups).
+    """
     _ensure_wandb_key()
     pl.seed_everything(cfg.training.seed, workers=True)
 

@@ -1,3 +1,5 @@
+"""FastAPI inference service for the EuroSAT ONNX model."""
+
 import base64
 import io
 import json
@@ -8,10 +10,10 @@ from datetime import datetime, timezone
 
 import numpy as np
 import onnxruntime as ort
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
 from google.cloud import storage  # type: ignore[attr-defined]
 from PIL import Image
-from prometheus_client import Counter, Histogram, Summary, make_asgi_app
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, Summary, generate_latest
 
 HEALTH_ROUTE = os.environ.get("AIP_HEALTH_ROUTE", "/health")
 PREDICT_ROUTE = os.environ.get("AIP_PREDICT_ROUTE", "/predict")
@@ -38,7 +40,16 @@ DEFAULT_STD = np.array([0.2026, 0.1369, 0.1155], dtype=np.float32)
 
 
 def preprocess(image: Image.Image, mean: np.ndarray = DEFAULT_MEAN, std: np.ndarray = DEFAULT_STD) -> np.ndarray:
-    """Resize and normalise an image into a (1, 3, 64, 64) float32 array."""
+    """Resize and normalise an image into the model's input format.
+
+    Args:
+        image: RGB input image of any size.
+        mean: Per-channel normalisation mean.
+        std: Per-channel normalisation std.
+
+    Returns:
+        Float32 array of shape ``(1, 3, 64, 64)``.
+    """
     image = image.resize((64, 64))
     arr = np.asarray(image, dtype=np.float32) / 255.0
     arr = arr.transpose(2, 0, 1)  # HWC -> CHW
@@ -78,6 +89,12 @@ def _load_session_from_gcs(storage_uri: str, tmpdir: str) -> ort.InferenceSessio
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Load the ONNX model from GCS on startup; clean up on shutdown.
+
+    Args:
+        app: The FastAPI application; the inference session and
+            normalisation stats are stored on ``app.state``.
+    """
     try:
         print(f"Loading EuroSAT ONNX model from {STORAGE_URI}")
         app.state.tmpdir = tempfile.TemporaryDirectory()
@@ -96,12 +113,21 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-app.mount("/metrics", make_asgi_app())
 
 prediction_requests = Counter("prediction_requests_total", "Total number of prediction requests")
 prediction_errors = Counter("prediction_errors_total", "Total number of prediction errors")
 prediction_latency = Histogram("prediction_latency_seconds", "Prediction latency in seconds")
 instances_per_request = Summary("prediction_instances_per_request", "Number of instances per request")
+
+
+@app.get("/metrics")
+def metrics() -> Response:
+    """Expose Prometheus metrics.
+
+    Must answer 200 directly on /metrics: the GMP sidecar scrapes this path and
+    does not follow the 307 redirect that a mounted sub-app would return.
+    """
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 def _log_image(image: Image.Image, class_name: str) -> None:
@@ -128,12 +154,25 @@ def _decode_instance(instance: dict | str) -> Image.Image:
 
 
 @app.get(HEALTH_ROUTE)
-async def health():
+async def health() -> dict:
+    """Report service liveness.
+
+    Returns:
+        ``{"status": "ok"}`` while the service is running.
+    """
     return {"status": "ok"}
 
 
 @app.post(PREDICT_ROUTE)
-async def predict(request: Request):
+async def predict(request: Request, background_tasks: BackgroundTasks) -> dict:
+    """Classify base64-encoded images.
+
+    Args:
+        request: JSON body of the form ``{"instances": [{"image_b64": ...}, ...]}``.
+
+    Returns:
+        A prediction per instance: class index, class name, and per-class probabilities. 503 if no model is loaded.
+    """
     prediction_requests.inc()
     with prediction_latency.time():
         try:
@@ -153,7 +192,7 @@ async def predict(request: Request):
                 idx = int(np.argmax(probs))
                 class_name = CLASS_NAMES[idx]
 
-                _log_image(image, class_name)
+                background_tasks.add_task(_log_image, image, class_name)
 
                 predictions.append(
                     {

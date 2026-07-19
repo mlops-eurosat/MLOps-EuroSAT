@@ -114,6 +114,9 @@ steps:
       - 'europe-west3-docker.pkg.dev/mlops-eurosat-496913/mlops-eurosat/monitoring:latest'
 
   # ---- Deploy phase: each deploy waits on its own push so it ships the fresh image ----
+  # The collector sidecar scrapes the API's /metrics endpoint and forwards it to
+  # Cloud Monitoring (Managed Service for Prometheus). It was originally added
+  # manually to the service; declaring it here keeps it from being lost on redeploys.
   - id: deploy-api
     name: 'gcr.io/cloud-builders/gcloud'
     waitFor: ['push-api']
@@ -121,10 +124,16 @@ steps:
       - 'run'
       - 'deploy'
       - 'eurosat-api'
-      - '--image=europe-west3-docker.pkg.dev/mlops-eurosat-496913/mlops-eurosat/api:latest'
       - '--region=europe-west3'
       - '--allow-unauthenticated'
+      - '--container=api'
+      - '--image=europe-west3-docker.pkg.dev/mlops-eurosat-496913/mlops-eurosat/api:latest'
       - '--port=8080'
+      - '--container=collector'
+      - '--image=us-docker.pkg.dev/cloud-ops-agents-artifacts/cloud-run-gmp-sidecar/cloud-run-gmp-sidecar:1.2.0'
+      - '--cpu=0.25'
+      - '--memory=128Mi'
+      - '--depends-on=api'
   - id: deploy-frontend
     name: 'gcr.io/cloud-builders/gcloud'
     waitFor: ['push-frontend']

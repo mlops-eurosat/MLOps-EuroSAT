@@ -19,6 +19,7 @@ classifiers = [
 ]
 readme = "README.md"
 requires-python = ">=3.12"
+license = "MIT"
 dynamic = ["dependencies", "optional-dependencies"]
 
 [tool.setuptools.dynamic]

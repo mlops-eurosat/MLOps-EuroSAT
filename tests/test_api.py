@@ -83,8 +83,9 @@ def test_predict_endpoint_class_name():
     from mlops_eurosat.api import app
 
     with patch("mlops_eurosat.api._load_session_from_gcs", return_value=_mock_session(predicted_class=1)):
-        with TestClient(app) as client:
-            response = client.post("/predict", json={"instances": [{"image_b64": _make_b64_image()}]})
+        with patch("mlops_eurosat.api._log_image"):
+            with TestClient(app) as client:
+                response = client.post("/predict", json={"instances": [{"image_b64": _make_b64_image()}]})
 
     assert response.status_code == 200
     predictions = response.json()["predictions"]
@@ -98,8 +99,9 @@ def test_predict_endpoint_probabilities():
     from mlops_eurosat.api import app
 
     with patch("mlops_eurosat.api._load_session_from_gcs", return_value=_mock_session()):
-        with TestClient(app) as client:
-            response = client.post("/predict", json={"instances": [{"image_b64": _make_b64_image()}]})
+        with patch("mlops_eurosat.api._log_image"):
+            with TestClient(app) as client:
+                response = client.post("/predict", json={"instances": [{"image_b64": _make_b64_image()}]})
 
     probs = response.json()["predictions"][0]["probabilities"]
     assert set(probs.keys()) == set(CLASS_NAMES)
@@ -111,11 +113,25 @@ def test_predict_endpoint_multiple_instances():
     from mlops_eurosat.api import app
 
     with patch("mlops_eurosat.api._load_session_from_gcs", return_value=_mock_session()):
-        with TestClient(app) as client:
-            response = client.post(
-                "/predict",
-                json={"instances": [{"image_b64": _make_b64_image()}, {"image_b64": _make_b64_image()}]},
-            )
+        with patch("mlops_eurosat.api._log_image") as mock_log:
+            with TestClient(app) as client:
+                response = client.post(
+                    "/predict",
+                    json={"instances": [{"image_b64": _make_b64_image()}, {"image_b64": _make_b64_image()}]},
+                )
 
     assert response.status_code == 200
     assert len(response.json()["predictions"]) == 2
+    assert mock_log.call_count == 2
+
+
+def test_metrics_endpoint_no_redirect():
+    """/metrics answers 200 directly; the GMP sidecar cannot follow a 307 redirect."""
+    from mlops_eurosat.api import app
+
+    with patch("mlops_eurosat.api._load_session_from_gcs", return_value=_mock_session()):
+        with TestClient(app) as client:
+            response = client.get("/metrics", follow_redirects=False)
+
+    assert response.status_code == 200
+    assert "prediction_requests_total" in response.text

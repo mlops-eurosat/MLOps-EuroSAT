@@ -1,11 +1,10 @@
 """Offline drift detection: CLIP embeddings → PCA → Evidently report.
 
-Usage:
-    python -m mlops_eurosat.data_drift \
-        --bucket eurosat_monitoring \
-        --train-pt data/processed/train.pt \
-        --n-components 20 \
-        --output reports/drift_report.html
+Compares logged prediction images against the training data and writes an
+HTML drift report.
+
+Run with:
+    python -m mlops_eurosat.data_drift [--output reports/drift_report.html]
 """
 
 import os
@@ -117,7 +116,12 @@ def save_reference_embeddings(
     train_pt: Path = Path("data/processed/train.pt"),
     bucket: str = os.environ.get("MONITORING_BUCKET", "eurosat_monitoring"),
 ) -> None:
-    """Pre-compute CLIP embeddings for training data and save to GCS (run once)."""
+    """Pre-compute CLIP embeddings for the training data and save them to GCS (run once).
+
+    Args:
+        train_pt: Preprocessed training tensors to embed.
+        bucket: GCS bucket the embeddings are uploaded to.
+    """
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model, processor = _load_clip(device)
     ref_images, ref_targets = _load_reference_images(train_pt)
@@ -137,6 +141,18 @@ def data_drift(
     n_predictions: int | None = None,
     output: Path = Path("reports/drift_report.html"),
 ) -> None:
+    """Build an Evidently drift report comparing logged predictions to the training data.
+
+    Embeds both image sets with CLIP and reduces them with PCA before
+    running the drift analysis.
+
+    Args:
+        bucket: GCS bucket holding the logged prediction images.
+        train_pt: Preprocessed training tensors used as reference.
+        n_components: Number of PCA components the embeddings are reduced to.
+        n_predictions: Number of most recent predictions to compare; all if omitted.
+        output: Path the HTML report is written to.
+    """
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model, processor = _load_clip(device)
 
