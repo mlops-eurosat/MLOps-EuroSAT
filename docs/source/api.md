@@ -20,6 +20,10 @@ Documentation of the classes and functions in the `mlops_eurosat` Python package
 
 ::: mlops_eurosat.evaluate
 
+### Visualization
+
+::: mlops_eurosat.visualize
+
 ## Cloud
 
 ### Vertex AI Pipeline

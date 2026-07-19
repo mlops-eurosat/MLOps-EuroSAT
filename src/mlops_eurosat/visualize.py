@@ -32,7 +32,20 @@ def misclassified_grid_figure(
     std: torch.Tensor,
     n: int = 16,
 ) -> Figure:
-    """Grid of misclassified test images with predicted vs. true labels."""
+    """Grid of misclassified test images with predicted vs. true labels.
+
+    Args:
+        images: Normalised images, shape (N, 3, 64, 64).
+        targets: True class index per image.
+        preds: Predicted class index per image.
+        classes: Class names, indexed by the labels above.
+        mean: Per-channel mean used to denormalise for display.
+        std: Per-channel std used to denormalise for display.
+        n: Show at most this many misclassified examples.
+
+    Returns:
+        A matplotlib figure with up to `n` images in a 4-column grid.
+    """
     targets_t = torch.tensor(targets)
     preds_t = torch.tensor(preds)
     wrong = (targets_t != preds_t).nonzero(as_tuple=True)[0][:n]
@@ -112,7 +125,18 @@ def figures_to_html(
     metrics: dict[str, float] | None = None,
     tables: dict[str, str] | None = None,
 ) -> str:
-    """Render model metadata, metrics, tables and figures into a styled HTML document."""
+    """Render model metadata, metrics, tables and figures into a styled HTML document.
+
+    Args:
+        figures: Section title -> figure; each is embedded as a base64 PNG.
+        title: Page heading.
+        meta: Optional model header rows (name -> value, values may be HTML).
+        metrics: Optional summary metrics (name -> value, rendered to 4 decimals).
+        tables: Optional extra sections with ready-made HTML tables.
+
+    Returns:
+        The complete HTML document as a string.
+    """
     parts = [
         "<!doctype html><html><head><meta charset='utf-8'>",
         f"<style>{_CSS}</style></head><body><div class='wrap'>",
