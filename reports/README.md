@@ -69,7 +69,7 @@ will check the repositories and the code to verify your answers.
 * [x] Write one or multiple configurations files for your experiments (M11)
 * [x] Used Hydra to load the configurations and manage your hyperparameters (M11)
 * [x] Use profiling to optimize your code (M12)
-* [ ] Use logging to log important events in your code (M14)
+* [x] Use logging to log important events in your code (M14)
 * [x] Use Weights & Biases to log training progress and other important metrics/artifacts in your code (M14)
 * [x] Consider running a hyperparameter optimization sweep (M14)
 * [x] Use PyTorch-lightning (if applicable) to reduce the amount of boilerplate in your code (M15)
@@ -583,7 +583,7 @@ We did not do load testing. If we did, we would use Locust: write a user that PO
 
 We implemented monitoring on two levels. First, the API exposes Prometheus metrics at `/metrics` — request count, errors and prediction latency — and the Cloud Run and Cloud Build logs go to Cloud Logging, while Cloud Monitoring collects the platform-level metrics, so we can see whether the service is healthy and how fast it responds. We also configured two Cloud Monitoring SLOs with alerts on the API service: a latency SLO and an availability SLO, both over a rolling 7-day window. 
 
-Second, we monitor for data drift. Every image that hits `/predict` is saved to a Cloud Storage bucket. A separate monitoring service loads a CLIP model and, on request, embeds the most recent prediction images, reduces them with a PCA fitted on a reference set, and runs an Evidently report (data drift and target drift) comparing the live traffic against that reference, saved as an HTML report. Its `/check` endpoint is called on a schedule by Cloud Scheduler and only runs the full analysis once at least 100 new predictions have accumulated, or a maximum staleness time has passed since the last run. This tells us whether the incoming satellite images start to look different from the training data.
+Second, we monitor for data drift. Every image that hits `/predict` is saved to a Cloud Storage bucket. A separate monitoring service loads a CLIP model and, on request, embeds the most recent prediction images, reduces them with a PCA fitted on a reference set, and runs an Evidently report (data drift and target drift) comparing the live traffic against that reference, saved as an HTML report. Its `/check` endpoint is called on a schedule by Cloud Scheduler and only runs the full analysis once at least 500 new predictions have accumulated, or a maximum staleness time has passed since the last run. This tells us whether the incoming satellite images start to look different from the training data.
 
 ## Overall discussion of project
 
