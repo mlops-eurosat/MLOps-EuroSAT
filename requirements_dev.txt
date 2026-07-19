@@ -6,6 +6,7 @@ pre-commit==4.6.0
 
 # testing
 pytest==9.1.1
+httpx==0.28.1
 coverage==7.15.2
 pytest-cov==7.1.0
 locust==2.45.0

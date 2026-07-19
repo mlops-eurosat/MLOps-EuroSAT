@@ -3,6 +3,7 @@ pytorch-lightning==2.6.5
 typer==0.27.0
 fastapi==0.139.2
 uvicorn==0.51.0
+prometheus-client>=0.25.0
 numpy==2.5.1
 pillow==12.3.0
 scikit-learn==1.9.0
@@ -17,6 +18,8 @@ google-cloud-secret-manager>=2.30.0
 requests>=2.33.0,<3.0.0
 pandas==3.0.4
 streamlit==1.59.2
+folium==0.20.0
+streamlit-folium==0.27.2
 onnx>=1.22.0
 onnxruntime>=1.27.0
 google-cloud-run>=0.16.1
