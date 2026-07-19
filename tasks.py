@@ -362,21 +362,19 @@ def serve_api(ctx: Context, port: int = 8000) -> None:
 
 
 @task
-def frontend(ctx: Context, upload: bool = False) -> None:
-    """Run the Streamlit map frontend; --upload starts the file-upload variant instead.
+def frontend(ctx: Context) -> None:
+    """Run the Streamlit frontend (live map + upload tab).
 
-    The map variant needs Sentinel Hub credentials; if SH_CLIENT_ID or
+    The map needs Sentinel Hub credentials; if SH_CLIENT_ID or
     SH_CLIENT_SECRET is not set, it is fetched from Secret Manager (the same
     secrets the Cloud Run deploy uses).
     """
-    script = "frontend.py" if upload else "frontend_map.py"
     env = {}
-    if not upload:
-        for var, secret in (("SH_CLIENT_ID", "sh-client-id"), ("SH_CLIENT_SECRET", "sh-client-secret")):
-            if not os.environ.get(var):
-                fetched = ctx.run(f"gcloud secrets versions access latest --secret={secret}", hide=True)
-                env[var] = fetched.stdout.strip()
-    ctx.run(f"streamlit run src/{PROJECT_NAME}/{script}", echo=True, pty=not WINDOWS, env=env)
+    for var, secret in (("SH_CLIENT_ID", "sh-client-id"), ("SH_CLIENT_SECRET", "sh-client-secret")):
+        if not os.environ.get(var):
+            fetched = ctx.run(f"gcloud secrets versions access latest --secret={secret}", hide=True)
+            env[var] = fetched.stdout.strip()
+    ctx.run(f"streamlit run src/{PROJECT_NAME}/frontend_map.py", echo=True, pty=not WINDOWS, env=env)
 
 
 # Build & deploy commands
