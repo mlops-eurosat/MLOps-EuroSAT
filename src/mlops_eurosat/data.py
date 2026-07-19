@@ -1,3 +1,10 @@
+"""EuroSAT preprocessing: raw JPEGs to normalised train/val/test tensors.
+
+Run directly or through DVC (`dvc repro preprocess`):
+
+    python src/mlops_eurosat/data.py data/raw/EuroSAT_RGB data/processed
+"""
+
 from pathlib import Path
 
 import numpy as np
@@ -12,7 +19,16 @@ def stratified_split(
     fracs: tuple[float, float, float] = (0.7, 0.15, 0.15),
     seed: int = 42,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Return train/val/test indices, stratified per class."""
+    """Split sample indices into train/val/test, keeping the class balance.
+
+    Args:
+        targets: Class label per sample, shape (N,).
+        fracs: Train/val/test fractions; must sum to 1.
+        seed: Seed for the per-class shuffle.
+
+    Returns:
+        Three index tensors (train, val, test) into `targets`.
+    """
     assert abs(sum(fracs) - 1.0) < 1e-6, "fracs must sum to 1.0"
     generator = torch.Generator().manual_seed(seed)
     train_idx, val_idx, test_idx = [], [], []
@@ -28,7 +44,7 @@ def stratified_split(
 
 
 class MyDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
-    """EuroSAT RGB dataset."""
+    """EuroSAT RGB dataset, read from a folder with one subfolder per class."""
 
     def __init__(self, data_path: Path) -> None:
         self.data_path = Path(data_path)
@@ -41,11 +57,20 @@ class MyDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         return len(self.targets)
 
     def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor]:
-        """Return a given sample from the dataset."""
+        """Return the (image, target) pair at `index`."""
         return self.images[index], self.targets[index]
 
     def preprocess(self, output_folder: Path) -> None:
-        """Preprocess the raw data and save it to the output folder."""
+        """Load the raw JPEGs, split and normalise them, and write the .pt files.
+
+        Images are scaled to [0, 1], split with `stratified_split` and
+        normalised with the mean/std of the train split only.
+
+        Args:
+            output_folder: Target folder for train.pt, val.pt and test.pt. Each
+                file holds `images` (N, 3, 64, 64), `targets`, `classes` and the
+                `mean`/`std` used for normalisation.
+        """
         output_folder = Path(output_folder)
         output_folder.mkdir(parents=True, exist_ok=True)
 
@@ -89,7 +114,12 @@ class MyDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
 
 
 def preprocess(data_path: Path, output_folder: Path) -> None:
-    """Preprocess EuroSAT RGB data."""
+    """CLI entry point: preprocess the raw EuroSAT folder into `output_folder`.
+
+    Args:
+        data_path: Raw data folder with one subfolder of JPEGs per class.
+        output_folder: Where the processed train/val/test tensors are written.
+    """
     print("Preprocessing data...")
     dataset = MyDataset(data_path)
     dataset.preprocess(output_folder)
