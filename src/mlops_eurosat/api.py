@@ -1,3 +1,5 @@
+"""FastAPI inference service for the EuroSAT ONNX model."""
+
 import base64
 import io
 import json
@@ -38,7 +40,16 @@ DEFAULT_STD = np.array([0.2026, 0.1369, 0.1155], dtype=np.float32)
 
 
 def preprocess(image: Image.Image, mean: np.ndarray = DEFAULT_MEAN, std: np.ndarray = DEFAULT_STD) -> np.ndarray:
-    """Resize and normalise an image into a (1, 3, 64, 64) float32 array."""
+    """Resize and normalise an image into the model's input format.
+
+    Args:
+        image: RGB input image of any size.
+        mean: Per-channel normalisation mean.
+        std: Per-channel normalisation std.
+
+    Returns:
+        Float32 array of shape ``(1, 3, 64, 64)``.
+    """
     image = image.resize((64, 64))
     arr = np.asarray(image, dtype=np.float32) / 255.0
     arr = arr.transpose(2, 0, 1)  # HWC -> CHW
@@ -78,6 +89,12 @@ def _load_session_from_gcs(storage_uri: str, tmpdir: str) -> ort.InferenceSessio
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Load the ONNX model from GCS on startup; clean up on shutdown.
+
+    Args:
+        app: The FastAPI application; the inference session and
+            normalisation stats are stored on ``app.state``.
+    """
     try:
         print(f"Loading EuroSAT ONNX model from {STORAGE_URI}")
         app.state.tmpdir = tempfile.TemporaryDirectory()
@@ -137,12 +154,25 @@ def _decode_instance(instance: dict | str) -> Image.Image:
 
 
 @app.get(HEALTH_ROUTE)
-async def health():
+async def health() -> dict:
+    """Report service liveness.
+
+    Returns:
+        ``{"status": "ok"}`` while the service is running.
+    """
     return {"status": "ok"}
 
 
 @app.post(PREDICT_ROUTE)
-async def predict(request: Request, background_tasks: BackgroundTasks):
+async def predict(request: Request, background_tasks: BackgroundTasks) -> dict:
+    """Classify base64-encoded images.
+
+    Args:
+        request: JSON body of the form ``{"instances": [{"image_b64": ...}, ...]}``.
+
+    Returns:
+        A prediction per instance: class index, class name, and per-class probabilities. 503 if no model is loaded.
+    """
     prediction_requests.inc()
     with prediction_latency.time():
         try:

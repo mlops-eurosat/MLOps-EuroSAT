@@ -100,6 +100,13 @@ def evaluate_model(
 
 @dsl.pipeline(name="eurosat-training-pipeline", pipeline_root=PIPELINE_ROOT)
 def eurosat_pipeline(preprocess_specs: list, worker_pool_specs: list, lock_uri: str) -> None:
+    """Pipeline definition: preprocess -> train -> evaluate, no caching for train/evaluate.
+
+    Args:
+        preprocess_specs: Vertex worker pool specs for the preprocess step.
+        worker_pool_specs: Vertex worker pool specs for the training step.
+        lock_uri: GCS URI where preprocess uploads this run's dvc.lock.
+    """
     from google_cloud_pipeline_components.v1.custom_job import CustomTrainingJobOp
 
     preprocess_task = CustomTrainingJobOp(

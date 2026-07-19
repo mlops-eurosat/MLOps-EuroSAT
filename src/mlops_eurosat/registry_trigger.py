@@ -28,8 +28,15 @@ async def health():
 
 
 @app.post("/")
-async def handle_event(request: Request):
-    """Handle the Eventarc audit-log CloudEvent for a Vertex model upload."""
+async def handle_event(request: Request) -> dict:
+    """Handle the Eventarc audit-log CloudEvent for a Vertex model upload.
+
+    Non-``UploadModel`` events are acknowledged and ignored; for uploads the
+    response carries the ``gate_promote_deploy`` status.
+
+    Returns:
+        ``{"status": ...}`` — ``ignored`` or the gate/promotion outcome.
+    """
     try:
         body = await request.json()
     except Exception:

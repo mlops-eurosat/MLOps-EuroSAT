@@ -1,14 +1,9 @@
-"""Quantize the EuroSAT ONNX model and benchmark fp32 vs int8 inference (M31).
+"""Quantize the EuroSAT ONNX model and benchmark fp32 vs int8 inference.
 
-Applies ONNX Runtime *dynamic* quantization (int8 weights) to the exported model
-and reports model size, inference latency, and prediction agreement, so the
-speed/size trade-off of quantization is measurable on the same artifact we serve.
+Reports model size, latency, and prediction agreement of the quantized model.
 
-    # export a fresh model, quantize it, benchmark, and check agreement on the test set
-    python src/mlops_eurosat/quantize.py
-
-    # quantize a specific exported model
-    python src/mlops_eurosat/quantize.py --onnx models/model.onnx --data data/processed/test.pt
+Run with:
+    python src/mlops_eurosat/quantize.py [--onnx models/model.onnx]
 """
 
 import tempfile
@@ -35,7 +30,16 @@ def _section(title: str) -> None:
 
 
 def export_fp32(onnx_path: Path, checkpoint: Path | None = None) -> Path:
-    """Export the model to fp32 ONNX, loading trained weights if a checkpoint is given."""
+    """Export the model to fp32 ONNX.
+
+    Args:
+        onnx_path: Destination path for the exported model.
+        checkpoint: Lightning checkpoint to load weights from; exports with
+            randomly initialised weights when omitted.
+
+    Returns:
+        The path of the exported model.
+    """
     model = Model()
     if checkpoint is not None:
         state = torch.load(checkpoint, map_location="cpu", weights_only=False)
@@ -58,7 +62,15 @@ def export_fp32(onnx_path: Path, checkpoint: Path | None = None) -> Path:
 
 
 def quantize_dynamic_int8(fp32_path: Path, int8_path: Path) -> Path:
-    """Dynamically quantize an fp32 ONNX model to int8 weights."""
+    """Dynamically quantize an fp32 ONNX model to int8 weights.
+
+    Args:
+        fp32_path: The fp32 ONNX model to quantize.
+        int8_path: Destination path for the quantized model.
+
+    Returns:
+        The path of the quantized model.
+    """
     from onnxruntime.quantization import QuantType, quantize_dynamic
     from onnxruntime.quantization.shape_inference import quant_pre_process
 
@@ -77,7 +89,17 @@ def _session(onnx_path: Path) -> ort.InferenceSession:
 
 
 def benchmark(onnx_path: Path, batch_size: int, runs: int, warmup: int) -> tuple[float, float]:
-    """Return (mean, std) latency in milliseconds over ``runs`` timed forward passes."""
+    """Time repeated forward passes of an ONNX model on random input.
+
+    Args:
+        onnx_path: Model to benchmark.
+        batch_size: Batch size of the timed input.
+        runs: Number of timed forward passes.
+        warmup: Untimed passes before timing starts.
+
+    Returns:
+        Mean and standard deviation of the latency in milliseconds.
+    """
     session = _session(onnx_path)
     x = np.random.randn(batch_size, *INPUT_SHAPE).astype(np.float32)
 
@@ -117,7 +139,16 @@ def main(
     runs: int = typer.Option(200, help="Number of timed forward passes."),
     warmup: int = typer.Option(20, help="Untimed warmup passes before timing."),
 ) -> None:
-    """Quantize the ONNX model and report the size / latency / accuracy trade-off."""
+    """Quantize the ONNX model and report the size / latency / accuracy trade-off.
+
+    Args:
+        onnx: fp32 ONNX model to quantize; exports a fresh one if omitted.
+        checkpoint: Lightning ``.ckpt`` to load weights from when exporting.
+        data: Preprocessed ``.pt`` file for the fp32-vs-int8 agreement check.
+        batch_size: Batch size for the latency benchmark.
+        runs: Number of timed forward passes.
+        warmup: Untimed warmup passes before timing.
+    """
     fp32_path = onnx if onnx is not None else export_fp32(Path("models/model.onnx"), checkpoint)
     int8_path = fp32_path.with_suffix(".quant.onnx")
     quantize_dynamic_int8(fp32_path, int8_path)

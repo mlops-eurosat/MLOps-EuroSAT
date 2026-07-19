@@ -1,3 +1,12 @@
+"""Dataset statistics and figures for the EuroSAT splits.
+
+Prints per-split statistics and saves sample-image and label-distribution
+figures to ``reports/figures/``.
+
+Run with:
+    python src/mlops_eurosat/dataset_statistics.py [--datadir data/processed]
+"""
+
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -18,7 +27,14 @@ def _denormalize(images: torch.Tensor, mean: torch.Tensor, std: torch.Tensor) ->
 
 
 def dataset_statistics(datadir: str = "data/processed") -> None:
-    """Compute dataset statistics for the EuroSAT processed splits."""
+    """Print statistics and save figures for the processed splits.
+
+    Reports image counts, shapes, pixel ranges, and label distributions,
+    and writes a sample-image grid plus one distribution plot per split.
+
+    Args:
+        datadir: Directory containing the processed ``train/val/test.pt`` files.
+    """
     processed_dir = Path(datadir)
     reports_dir = Path("reports/figures")
     reports_dir.mkdir(parents=True, exist_ok=True)
