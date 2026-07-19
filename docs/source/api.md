@@ -25,3 +25,7 @@ Documentation of the classes and functions in the `mlops_eurosat` Python package
 ### Inference API
 
 ::: mlops_eurosat.api
+
+### Map Frontend
+
+::: mlops_eurosat.frontend_map

@@ -79,7 +79,15 @@ def _sh_access_token() -> str:
 
 
 def get_patch(lat: float, lng: float) -> Image.Image:
-    """Return a 64×64 Sentinel-2 RGB patch (640 m) centred at (lat, lng)."""
+    """Fetch a Sentinel-2 RGB patch centred at a coordinate.
+
+    Args:
+        lat: Latitude of the patch centre.
+        lng: Longitude of the patch centre.
+
+    Returns:
+        A 64×64 RGB image covering 640m × 640m.
+    """
     lat_delta = _PATCH_M / 111_320
     lng_delta = _PATCH_M / (111_320 * math.cos(math.radians(lat)))
     bbox = [lng - lng_delta / 2, lat - lat_delta / 2, lng + lng_delta / 2, lat + lat_delta / 2]
@@ -109,6 +117,15 @@ def get_patch(lat: float, lng: float) -> Image.Image:
 
 
 def classify(img: Image.Image) -> dict:
+    """Send an image to the inference API and return its prediction.
+
+    Args:
+        img: RGB image to classify.
+
+    Returns:
+        The prediction for the image: class index, class name, and
+        per-class probabilities.
+    """
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     image_b64 = base64.b64encode(buf.getvalue()).decode()
