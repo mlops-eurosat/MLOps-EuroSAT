@@ -335,6 +335,27 @@ def data_drift(ctx: Context, n_predictions: int = 500, output: str = "reports/dr
     ctx.run(cmd, echo=True, pty=not WINDOWS)
 
 
+@task
+def load_test(
+    ctx: Context,
+    host: str = "https://eurosat-api-999981877996.europe-west3.run.app",
+    users: int = 50,
+    spawn_rate: int = 5,
+    run_time: str = "3m",
+) -> None:
+    """Load test the deployed API with Locust (headless; prints RPS and latency percentiles).
+
+    e.g. invoke load-test --users 100 --spawn-rate 10 --run-time 5m
+    Every request logs an image to the monitoring bucket
+    gs://eurosat_monitoring/predictions/ afterwards.
+    """
+    cmd = (
+        "locust -f tests/performancetests/locustfile.py --headless "
+        f"-u {users} -r {spawn_rate} -t {run_time} --host {host}"
+    )
+    ctx.run(cmd, echo=True, pty=not WINDOWS)
+
+
 # Quality commands
 @task
 def test(ctx: Context) -> None:
