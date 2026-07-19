@@ -19,3 +19,9 @@ Documentation of the classes and functions in the `mlops_eurosat` Python package
 ### Evaluation
 
 ::: mlops_eurosat.evaluate
+
+## Serving
+
+### Inference API
+
+::: mlops_eurosat.api
