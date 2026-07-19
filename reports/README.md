@@ -91,7 +91,7 @@ will check the repositories and the code to verify your answers.
 * [x] Create a FastAPI application that can do inference using your model (M22)
 * [x] Deploy your model in GCP using either Functions or Run as the backend (M23)
 * [x] Write API tests for your application and setup continues integration for these (M24)
-* [ ] Load test your application (M24)
+* [x] Load test your application (M24)
 * [x] Create a more specialized ML-deployment API using either ONNX or BentoML, or both (M25)
 * [x] Create a frontend for your API (M26)
 
@@ -564,9 +564,9 @@ It returns the predicted class and the per-class probabilities for each image. O
 >
 > Answer:
 
-For functional testing we used pytest with FastAPI's TestClient, which runs the app through httpx. We have ten tests that hit the endpoints against a mocked ONNX session: `/health`, and `/predict` with a single image and with multiple images, plus the preprocessing, base64 decoding and softmax helpers. This checks that the routes return the right classes and shapes without needing the real model or GCP.
+For functional testing we used pytest with FastAPI's TestClient: ten tests hit `/health` and `/predict` (single and batched images) against a mocked ONNX session, plus the preprocessing, base64-decoding and softmax helpers, checking that the routes return the right classes and shapes without needing the real model or GCP.
 
-We did not do load testing. If we did, we would use Locust: write a user that POSTs a base64 image to `/predict`, then ramp up concurrent users against the deployed Cloud Run service. We would record requests per second, the p50 and p95 latency and the error rate, and watch how Cloud Run autoscales and where latency starts to climb. Since the model runs one image at a time on CPU, we would expect per-request inference to be the bottleneck.
+For load testing we ran Locust against the deployed Cloud Run service (`invoke load-test`), each user POSTing a base64 image to `/predict`. Under moderate load (50 users, two minutes) the API served ~20 requests per second with zero failures at a median latency of 0.7 s (p95 3.7 s). A one-minute stress run with 1,000 users saturated the service: throughput plateaued at ~105 requests per second, median latency rose to ~7 s (p95 14 s), and 12 of 6,054 requests (0.2%) were rejected with HTTP 429 once Cloud Run stopped scaling out. `/health` was then as slow as `/predict`, so the time is spent queueing for instances rather than in inference, and the synchronous image upload to the monitoring bucket adds more.
 
 ### Question 26
 
