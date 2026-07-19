@@ -690,7 +690,7 @@ A smaller issue was the live map, which initially used the wrong colour grading 
 > *We have used ChatGPT to help debug our code. Additionally, we used GitHub Copilot to help write some of our code.*
 > Answer:
 
-Cosima Fröhner implemented the baseline CNN and Lightning conversion, configured Vertex AI training and the early Cloud Build path, expanded tests across data, model, training, API and the registry trigger, created the DVC-change/CML workflow and developed the CLIP/Evidently drift service, and Prometheus system metrics.
+Cosima Fröhner implemented the baseline CNN and Lightning conversion, configured Vertex AI training and the early Cloud Build path, expanded tests across data, model, training, API and the registry trigger, created the DVC-change/CML workflow, developed the CLIP/Evidently drift service, and set up Prometheus system metrics with the Managed Prometheus sidecar and Cloud Monitoring SLO alerts.
 
 Michael Speckbacher worked on DVC and preprocessing, Hydra and W&B integration, the Vertex pipeline, the model registry and the registry-change trigger with its Eventarc handler, evaluation visualizations, profiling, Docker/build optimization, the expanded Invoke tasks and the multi-OS/Python CI matrix.
 
