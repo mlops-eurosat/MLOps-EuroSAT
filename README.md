@@ -6,6 +6,12 @@
 
 MLOps pipeline for land use classification on the EuroSAT dataset.
 
+## Architecture
+
+![EuroSAT MLOps system architecture](reports/figures/architecture.png)
+
+## Links
+
 Interactive frontend: [Frontend](https://eurosat-frontend-999981877996.europe-west3.run.app/)
 
 Documentation: [Documentation](https://mlops-eurosat.github.io/MLOps-EuroSAT/)
