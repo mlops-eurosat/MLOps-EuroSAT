@@ -1,8 +1,8 @@
 torch==2.13.0
 pytorch-lightning==2.6.5
 typer==0.27.0
-fastapi==0.140.0
-uvicorn==0.51.0
+fastapi==0.141.1
+uvicorn==0.52.0
 prometheus-client>=0.26.0
 numpy==2.5.1
 pillow==12.3.0
@@ -12,7 +12,7 @@ wandb>=0.28.1
 pyyaml>=6.0.3
 matplotlib>=3.11.1
 python-multipart==0.0.32
-google-cloud-aiplatform>=1.162.0
+google-cloud-aiplatform>=1.163.0
 google-cloud-storage>=3.13.0
 google-cloud-secret-manager>=2.30.0
 requests>=2.33.0,<3.0.0

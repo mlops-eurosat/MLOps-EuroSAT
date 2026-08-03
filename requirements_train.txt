@@ -7,7 +7,7 @@ onnx>=1.22.0
 numpy==2.5.1
 google-cloud-storage>=3.13.0
 google-cloud-secret-manager>=2.30.0
-google-cloud-aiplatform>=1.162.0
+google-cloud-aiplatform>=1.163.0
 # Eval-only deps: the pipeline's evaluate step reuses this image (base_image=TRAIN_IMAGE)
 # and imports these in src/mlops_eurosat/pipeline.py + visualize.py.
 onnxruntime>=1.28.0
