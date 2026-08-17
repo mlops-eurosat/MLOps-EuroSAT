@@ -1,7 +1,7 @@
-fastapi==0.140.0
-uvicorn==0.51.0
-numpy==2.5.1
+fastapi==0.141.1
+uvicorn==0.52.3
+numpy==2.5.2
 onnxruntime>=1.28.0
-google-cloud-aiplatform>=1.162.0
-google-cloud-storage>=3.13.0
+google-cloud-aiplatform>=1.164.0
+google-cloud-storage>=3.13.1
 google-cloud-run>=0.16.1
