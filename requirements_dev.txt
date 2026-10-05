@@ -2,29 +2,29 @@
 invoke==3.0.3
 
 # pre-commit
-pre-commit==4.6.1
+pre-commit==4.6.2
 
 # testing
 pytest==9.1.1
 httpx==0.28.1
-coverage==7.15.2
+coverage==7.16.2
 pytest-cov==7.1.0
-locust==2.46.2
+locust==2.46.6
 
 # linting
-ruff==0.16.0
-mypy==2.3.0
+ruff==0.16.10
+mypy==2.4.0
 
 # docs
 mkdocs-material==9.7.7
-mkdocstrings-python==2.0.5
+mkdocstrings-python==2.0.9
 
 # vertex pipeline
 kfp>=2.17.0,<2.18.0
 google-cloud-pipeline-components>=2.22.0
 
-types-PyYAML>=6.0.12.20260724
-pandas-stubs>=3.0.3.260530
-types-requests>=2.33.0.20260712
-onnxruntime==1.28.0
+types-PyYAML>=6.0.12.20260906
+pandas-stubs>=3.0.5.260914
+types-requests>=2.33.0.20260906
+onnxruntime==1.30.0
 prometheus-client>=0.26.0
