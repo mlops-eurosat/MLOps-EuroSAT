@@ -4,3 +4,5 @@ pillow==12.3.0
 pandas==3.0.4
 folium==0.20.0
 streamlit-folium==0.27.2
+# streamlit 1.59.2 breaks with starlette>=1.8 (st.image media requests fail with HTTP 500)
+starlette==1.7.0
