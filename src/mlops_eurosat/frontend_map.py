@@ -33,6 +33,11 @@ ZOOM = 15
 DEBOUNCE_S = 1.0
 DEFAULT_LAT, DEFAULT_LNG = 48.137, 11.575  # Munich
 _PATCH_M = 640
+# EuroSAT was built from low-cloud Sentinel-2A L1C scenes (Helber et al., 2019). Query the same
+# sensor and era (before Sentinel-2B launched in 2017), limited to the 2016 growing season so the
+# least-cloudy scene is not a snow-covered winter one — the EuroSAT authors removed snow patches.
+_SH_TIME_FROM = "2016-05-01T00:00:00Z"
+_SH_TIME_TO = "2016-09-30T23:59:59Z"
 
 _SH_EVALSCRIPT = """
 //VERSION=3
@@ -81,6 +86,9 @@ def _sh_access_token() -> str:
 def get_patch(lat: float, lng: float) -> Image.Image:
     """Fetch a Sentinel-2 RGB patch centred at a coordinate.
 
+    Uses the least cloudy Sentinel-2A L1C scene from the EuroSAT acquisition period, so the
+    patch matches the distribution the model was trained on.
+
     Args:
         lat: Latitude of the patch centre.
         lng: Longitude of the patch centre.
@@ -98,7 +106,16 @@ def get_patch(lat: float, lng: float) -> Image.Image:
                 "bbox": bbox,
                 "properties": {"crs": "http://www.opengis.net/def/crs/OGC/1.3/CRS84"},
             },
-            "data": [{"type": "sentinel-2-l1c", "dataFilter": {"maxCloudCoverage": 30}}],
+            "data": [
+                {
+                    "type": "sentinel-2-l1c",
+                    "dataFilter": {
+                        "timeRange": {"from": _SH_TIME_FROM, "to": _SH_TIME_TO},
+                        "maxCloudCoverage": 30,
+                        "mosaickingOrder": "leastCC",
+                    },
+                }
+            ],
         },
         "output": {
             "width": 64,
@@ -229,7 +246,7 @@ def _render_prediction(pred: dict, img: Image.Image | None, location_label: str 
         st.image(img, caption="Image sent to model", width=192)
         # Copernicus attribution: only live-map patches are Sentinel imagery.
         if location_label:
-            st.caption(f"Contains modified Copernicus Sentinel data ({time.strftime('%Y')}).")
+            st.caption("Contains modified Copernicus Sentinel data (2016).")
     st.divider()
     st.subheader("Class probabilities")
     df = (
