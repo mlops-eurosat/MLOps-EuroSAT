@@ -1,7 +1,7 @@
-streamlit==1.60.0
+streamlit==1.66.1
 requests==2.34.2
-pillow==12.3.0
-pandas==3.0.5
+pillow==13.0.0
+pandas==3.1.0
 folium==0.20.0
-streamlit-folium==0.27.2
-starlette==1.7.0
+streamlit-folium==0.27.4
+starlette==1.9.0
